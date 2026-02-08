@@ -91,8 +91,6 @@
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
   }
 
-  .header-left { display: flex; align-items: center; gap: 12px; }
-
   h1 { font-size: 1.6rem; color: var(--accent); }
 
   .month-nav { display: flex; align-items: center; gap: 12px; }
@@ -444,6 +442,8 @@
   .user-bar .user-info { color: var(--text-secondary); }
   .user-bar .user-info strong { color: var(--text-primary); }
 
+  .user-bar-actions { display: flex; align-items: center; gap: 8px; }
+
   .user-bar .logout-btn {
     background: none; border: 1px solid var(--border-hover); color: var(--text-secondary);
     padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: .8rem;
@@ -490,14 +490,14 @@
 
   <div class="user-bar" id="userBar">
     <span class="user-info">Signed in as <strong id="userEmail"></strong></span>
-    <button class="logout-btn" id="logoutBtn">Log Out</button>
+    <div class="user-bar-actions">
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light and dark theme">&#9790;</button>
+      <button class="logout-btn" id="logoutBtn">Log Out</button>
+    </div>
   </div>
 
   <header>
-    <div class="header-left">
-      <h1>Budget Calendar Tracker</h1>
-      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light and dark theme">&#9790;</button>
-    </div>
+    <h1>Budget Calendar Tracker</h1>
     <div class="month-nav">
       <button id="prevMonth">&larr;</button>
       <span id="monthLabel"></span>
