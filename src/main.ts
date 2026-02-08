@@ -6,6 +6,27 @@ import type { User } from '@supabase/supabase-js';
 // ── Helpers ──────────────────────────────────────────────────────────
 const el = (id: string): HTMLElement => document.getElementById(id)!;
 
+// ── Theme ────────────────────────────────────────────────────────────
+function getTheme(): string {
+  return localStorage.getItem('budget-theme') || 'dark';
+}
+
+function setTheme(theme: string): void {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('budget-theme', theme);
+  updateThemeToggleIcon(theme);
+}
+
+function updateThemeToggleIcon(theme: string): void {
+  const btn = document.getElementById('themeToggle');
+  if (btn) {
+    btn.innerHTML = theme === 'dark' ? '&#9790;' : '&#9728;';
+  }
+}
+
+// Apply saved theme immediately
+setTheme(getTheme());
+
 function monthKey(y: number, m: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}`;
 }
@@ -136,7 +157,7 @@ function render(): void {
 
   const bar = el('progressBar');
   bar.style.width = pct + '%';
-  bar.style.background = pct > 40 ? '#4ade80' : pct > 15 ? '#fbbf24' : '#f87171';
+  bar.style.background = pct > 40 ? 'var(--success)' : pct > 15 ? 'var(--warning)' : 'var(--danger)';
 
   const elapsed = isCurrentMonth ? today.getDate() : daysInMonth;
   const avg = elapsed > 0 ? totalExpenses / elapsed : 0;
@@ -436,24 +457,29 @@ function renderMonthlySummary(): void {
   el('summaryTotals').innerHTML = `
     <div class="st-card">
       <div class="st-label">Total Budget (All Time)</div>
-      <div class="st-value" style="color:#38bdf8;">${fmt(grandBudget)}</div>
+      <div class="st-value" style="color:var(--accent);">${fmt(grandBudget)}</div>
     </div>
     <div class="st-card">
       <div class="st-label">Total Daily Expenses</div>
-      <div class="st-value" style="color:#f87171;">${fmt(grandExpenses)}</div>
+      <div class="st-value" style="color:var(--danger);">${fmt(grandExpenses)}</div>
     </div>
     <div class="st-card">
       <div class="st-label">Total Subscriptions</div>
-      <div class="st-value" style="color:#a78bfa;">${fmt(grandSubs)}</div>
+      <div class="st-value" style="color:var(--purple);">${fmt(grandSubs)}</div>
     </div>
     <div class="st-card">
       <div class="st-label">Overall Remaining</div>
-      <div class="st-value" style="color:${grandRemaining >= 0 ? '#4ade80' : '#f87171'};">${grandRemaining < 0 ? '-' : ''}${fmt(grandRemaining)}</div>
+      <div class="st-value" style="color:var(${grandRemaining >= 0 ? '--success' : '--danger'});">${grandRemaining < 0 ? '-' : ''}${fmt(grandRemaining)}</div>
     </div>
   `;
 }
 
 // ── Event Listeners ──────────────────────────────────────────────────
+
+el('themeToggle').addEventListener('click', () => {
+  const current = getTheme();
+  setTheme(current === 'dark' ? 'light' : 'dark');
+});
 
 el('prevMonth').addEventListener('click', () => {
   currentMonth--;
@@ -571,7 +597,7 @@ el('authSubmit').addEventListener('click', async () => {
   }
 
   if (mode === 'signup') {
-    el('authError').style.color = '#4ade80';
+    el('authError').style.color = 'var(--success)';
     el('authError').textContent = 'Account created! Check your email to confirm, then log in.';
   }
 });
