@@ -32,6 +32,15 @@ export async function signIn(email: string, password: string): Promise<string | 
   return null;
 }
 
+export async function signInWithGoogle(): Promise<string | null> {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  });
+  if (error) return error.message;
+  return null;
+}
+
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut();
 }

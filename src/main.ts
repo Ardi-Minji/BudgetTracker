@@ -1,5 +1,5 @@
 import type { BudgetStore, MonthData, MonthSummary, YearSummary } from './types';
-import { initAuth, setAuthCallback, signIn, signUp, signOut } from './auth';
+import { initAuth, setAuthCallback, signIn, signUp, signInWithGoogle, signOut } from './auth';
 import { loadData, saveData, setUserId } from './store';
 import type { User } from '@supabase/supabase-js';
 
@@ -584,6 +584,11 @@ el('authMode').addEventListener('change', () => {
 
 el('authPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') (el('authSubmit') as HTMLButtonElement).click();
+});
+
+el('googleBtn').addEventListener('click', async () => {
+  const err = await signInWithGoogle();
+  if (err) el('authError').textContent = err;
 });
 
 el('logoutBtn').addEventListener('click', async () => {
