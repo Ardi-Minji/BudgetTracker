@@ -42,6 +42,13 @@ function fmt(n: number): string {
   });
 }
 
+function fmtShort(n: number): string {
+  const v = Math.abs(n);
+  if (v >= 1000) return (v / 1000).toFixed(v % 1000 === 0 ? 0 : 1) + 'k';
+  if (v === Math.floor(v)) return String(v);
+  return v.toFixed(0);
+}
+
 function escHtml(s: string): string {
   const d = document.createElement('div');
   d.textContent = s;
@@ -121,8 +128,8 @@ function render(): void {
     const subTotal = daySubs.reduce((sum, s) => sum + s.amount, 0);
 
     let html = `<div class="day-num">${d}</div>`;
-    if (dayTotal > 0) html += `<div class="day-total">-${fmt(dayTotal)}</div>`;
-    if (subTotal > 0) html += `<div class="day-sub">${fmt(subTotal)}</div>`;
+    if (dayTotal > 0) html += `<div class="day-total">-${fmtShort(dayTotal)}</div>`;
+    if (subTotal > 0) html += `<div class="day-sub">${fmtShort(subTotal)}</div>`;
 
     if (dayExpenses.length > 0 || daySubs.length > 0) {
       html += '<div class="dot-row">';
