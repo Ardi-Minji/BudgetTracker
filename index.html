@@ -365,6 +365,9 @@
 
   /* ── Responsive: hide table on mobile, show cards ── */
   @media (max-width: 640px) {
+    header { justify-content: center; text-align: center; }
+    h1 { width: 100%; }
+    .month-nav { width: 100%; justify-content: center; }
     .summary-table { display: none; }
     .summary-cards-mobile { display: block; }
     .summary-totals { grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
