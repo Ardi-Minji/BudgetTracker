@@ -1,4 +1,7 @@
 import type { BudgetStore, MonthData, MonthSummary, YearSummary } from './types';
+import { initAuth, setAuthCallback, signIn, signUp, signOut } from './auth';
+import { loadData, saveData, setUserId } from './store';
+import type { User } from '@supabase/supabase-js';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 const el = (id: string): HTMLElement => document.getElementById(id)!;
@@ -38,11 +41,11 @@ const MONTH_SHORT = [
 let currentYear: number;
 let currentMonth: number;
 let selectedDay: number | null;
-let data: BudgetStore = JSON.parse(localStorage.getItem('budgetData') || '{}');
+let data: BudgetStore = {};
 const expandedYears = new Set<number>();
 
 function save(): void {
-  localStorage.setItem('budgetData', JSON.stringify(data));
+  saveData(data);
 }
 
 function getMonthData(y: number, m: number): MonthData {
@@ -522,10 +525,90 @@ el('summaryToggle').addEventListener('click', () => {
   if (wrap.classList.contains('open')) renderMonthlySummary();
 });
 
+// ── Auth UI ──────────────────────────────────────────────────────────
+
+function showAuthScreen(): void {
+  el('authScreen').style.display = 'flex';
+  el('appMain').style.display = 'none';
+  el('authError').textContent = '';
+}
+
+function showApp(user: User): void {
+  el('authScreen').style.display = 'none';
+  el('appMain').style.display = 'block';
+  el('userEmail').textContent = user.email ?? '';
+  el('userBar').style.display = 'flex';
+}
+
+el('authSubmit').addEventListener('click', async () => {
+  const email = (el('authEmail') as HTMLInputElement).value.trim();
+  const password = (el('authPassword') as HTMLInputElement).value;
+  const mode = (el('authMode') as HTMLSelectElement).value;
+
+  if (!email || !password) {
+    el('authError').textContent = 'Please enter email and password.';
+    return;
+  }
+  if (password.length < 6) {
+    el('authError').textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+
+  el('authError').textContent = '';
+  el('authSubmit').textContent = 'Loading...';
+  (el('authSubmit') as HTMLButtonElement).disabled = true;
+
+  const err = mode === 'signup'
+    ? await signUp(email, password)
+    : await signIn(email, password);
+
+  el('authSubmit').textContent = mode === 'signup' ? 'Sign Up' : 'Log In';
+  (el('authSubmit') as HTMLButtonElement).disabled = false;
+
+  if (err) {
+    el('authError').textContent = err;
+    return;
+  }
+
+  if (mode === 'signup') {
+    el('authError').style.color = '#4ade80';
+    el('authError').textContent = 'Account created! Check your email to confirm, then log in.';
+  }
+});
+
+el('authMode').addEventListener('change', () => {
+  const mode = (el('authMode') as HTMLSelectElement).value;
+  el('authSubmit').textContent = mode === 'signup' ? 'Sign Up' : 'Log In';
+  el('authError').textContent = '';
+});
+
+el('authPassword').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') (el('authSubmit') as HTMLButtonElement).click();
+});
+
+el('logoutBtn').addEventListener('click', async () => {
+  await signOut();
+});
+
 // ── Init ─────────────────────────────────────────────────────────────
 initSubDaySelect();
+
 const now = new Date();
 currentYear = now.getFullYear();
 currentMonth = now.getMonth();
 selectedDay = now.getDate();
-render();
+
+setAuthCallback(async (user: User | null) => {
+  if (!user) {
+    setUserId(null);
+    showAuthScreen();
+    return;
+  }
+
+  setUserId(user.id);
+  data = await loadData();
+  showApp(user);
+  render();
+});
+
+initAuth();

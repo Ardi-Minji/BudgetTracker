@@ -292,13 +292,98 @@
     .summary-cards-mobile { display: none !important; }
   }
 
+  /* ── Auth Screen ── */
+  .auth-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px;
+  }
+
+  .auth-box {
+    background: #1e293b; border: 1px solid #334155; border-radius: 16px;
+    padding: 32px; width: 100%; max-width: 380px;
+  }
+
+  .auth-box h2 {
+    color: #38bdf8; font-size: 1.4rem; margin-bottom: 6px; text-align: center;
+  }
+
+  .auth-box p {
+    color: #64748b; font-size: .85rem; text-align: center; margin-bottom: 20px;
+  }
+
+  .auth-box .form-row { margin-bottom: 12px; }
+
+  .auth-box input, .auth-box select {
+    background: #0f172a; border: 1px solid #475569; color: #e2e8f0;
+    padding: 10px 12px; border-radius: 8px; font-size: .9rem; width: 100%;
+  }
+  .auth-box input:focus, .auth-box select:focus { outline: none; border-color: #38bdf8; }
+
+  .auth-box select { cursor: pointer; appearance: auto; }
+
+  .auth-box .btn {
+    width: 100%; padding: 12px; font-size: .95rem; margin-top: 4px;
+  }
+
+  .auth-error {
+    color: #f87171; font-size: .8rem; text-align: center;
+    min-height: 20px; margin-top: 10px;
+  }
+
+  /* ── User Bar ── */
+  .user-bar {
+    display: none; justify-content: space-between; align-items: center;
+    background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+    padding: 8px 16px; margin-bottom: 16px; font-size: .85rem;
+  }
+
+  .user-bar .user-info { color: #94a3b8; }
+  .user-bar .user-info strong { color: #e2e8f0; }
+
+  .user-bar .logout-btn {
+    background: none; border: 1px solid #475569; color: #94a3b8;
+    padding: 5px 14px; border-radius: 6px; cursor: pointer; font-size: .8rem;
+    transition: background .2s, color .2s;
+  }
+  .user-bar .logout-btn:hover { background: #334155; color: #e2e8f0; }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #1e293b; }
   ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- Auth Screen -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-box">
+    <h2>Budget Tracker</h2>
+    <p>Sign in to sync your budget across devices</p>
+    <div class="form-row">
+      <select id="authMode">
+        <option value="login">Log In</option>
+        <option value="signup">Sign Up</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <input type="email" id="authEmail" placeholder="Email address" autocomplete="email">
+    </div>
+    <div class="form-row">
+      <input type="password" id="authPassword" placeholder="Password (min 6 chars)" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" id="authSubmit">Log In</button>
+    <div class="auth-error" id="authError"></div>
+  </div>
+</div>
+
+<!-- Main App (hidden until logged in) -->
+<div class="app" id="appMain" style="display:none;">
+
+  <div class="user-bar" id="userBar">
+    <span class="user-info">Signed in as <strong id="userEmail"></strong></span>
+    <button class="logout-btn" id="logoutBtn">Log Out</button>
+  </div>
+
   <header>
     <h1>Budget Calendar Tracker</h1>
     <div class="month-nav">
