@@ -268,18 +268,25 @@ function buildYearSummaries(): YearSummary[] {
   return years;
 }
 
+function statusBadge(hasData: boolean, remaining: number): string {
+  if (!hasData) return '<span class="status-badge empty">No Data</span>';
+  return remaining >= 0
+    ? '<span class="status-badge under">Under Budget</span>'
+    : '<span class="status-badge over">Over Budget</span>';
+}
+
 function renderMonthlySummary(): void {
   const body = el('summaryBody');
+  const mobileWrap = el('summaryCardsMobile');
   const today = new Date();
   const yearSummaries = buildYearSummaries();
 
-  // Auto-expand the current year
   if (expandedYears.size === 0) {
     expandedYears.add(currentYear);
   }
 
-  let html = '';
-
+  let tableHtml = '';
+  let cardsHtml = '';
   let grandBudget = 0;
   let grandExpenses = 0;
   let grandSubs = 0;
@@ -287,17 +294,13 @@ function renderMonthlySummary(): void {
   for (const ys of yearSummaries) {
     const isExpanded = expandedYears.has(ys.year);
     const yearHasData = ys.totalBudget > 0 || ys.totalExpenses > 0 || ys.totalSubs > 0;
-    const yearStatus = !yearHasData
-      ? '<span class="status-badge empty">No Data</span>'
-      : ys.remaining >= 0
-        ? '<span class="status-badge under">Under Budget</span>'
-        : '<span class="status-badge over">Over Budget</span>';
 
     grandBudget += ys.totalBudget;
     grandExpenses += ys.totalExpenses;
     grandSubs += ys.totalSubs;
 
-    html += `
+    // ── Desktop table rows ──
+    tableHtml += `
       <tr class="year-header-row ${isExpanded ? 'expanded' : ''}" data-year="${ys.year}">
         <td class="year-header-cell">
           <span class="year-chevron">${isExpanded ? '&#9660;' : '&#9654;'}</span>
@@ -308,22 +311,33 @@ function renderMonthlySummary(): void {
         <td class="subs-col">${ys.totalSubs > 0 ? fmt(ys.totalSubs) : '-'}</td>
         <td class="spent-col">${ys.totalSpent > 0 ? fmt(ys.totalSpent) : '-'}</td>
         <td class="remain-col ${ys.remaining >= 0 ? 'positive' : 'negative'}">${yearHasData ? (ys.remaining < 0 ? '-' : '') + fmt(ys.remaining) : '-'}</td>
-        <td class="status-col">${yearStatus}</td>
+        <td class="status-col">${statusBadge(yearHasData, ys.remaining)}</td>
       </tr>
     `;
 
+    // ── Mobile: year card group ──
+    cardsHtml += `<div class="year-card-group" data-year="${ys.year}">`;
+    cardsHtml += `
+      <div class="year-card-header" data-year="${ys.year}">
+        <div class="year-title">
+          <span class="year-chevron">${isExpanded ? '&#9660;' : '&#9654;'}</span>
+          ${ys.year}
+        </div>
+        <div class="year-stats">
+          <span class="ys-budget">${ys.totalBudget > 0 ? fmt(ys.totalBudget) : '-'}</span>
+          <span class="ys-remain ${ys.remaining >= 0 ? 'positive' : 'negative'}">${yearHasData ? (ys.remaining < 0 ? '-' : '') + fmt(ys.remaining) : '-'}</span>
+        </div>
+      </div>
+    `;
+
     if (isExpanded) {
+      cardsHtml += '<div class="month-cards">';
       for (const ms of ys.months) {
         const isCurrent = ms.year === today.getFullYear() && ms.monthIndex === today.getMonth();
         const isViewing = ms.year === currentYear && ms.monthIndex === currentMonth;
 
-        const statusHtml = !ms.hasData
-          ? '<span class="status-badge empty">No Data</span>'
-          : ms.remaining >= 0
-            ? '<span class="status-badge under">Under Budget</span>'
-            : '<span class="status-badge over">Over Budget</span>';
-
-        html += `
+        // Desktop table row
+        tableHtml += `
           <tr class="month-row ${isCurrent ? 'current-row' : ''} ${isViewing ? 'viewing-row' : ''}" data-y="${ms.year}" data-m="${ms.monthIndex}">
             <td class="month-name">${MONTH_NAMES[ms.monthIndex]}</td>
             <td class="budget-col">${ms.budget > 0 ? fmt(ms.budget) : '-'}</td>
@@ -331,33 +345,84 @@ function renderMonthlySummary(): void {
             <td class="subs-col">${ms.subscriptions > 0 ? fmt(ms.subscriptions) : '-'}</td>
             <td class="spent-col">${ms.totalSpent > 0 ? fmt(ms.totalSpent) : '-'}</td>
             <td class="remain-col ${ms.remaining >= 0 ? 'positive' : 'negative'}">${ms.hasData ? (ms.remaining < 0 ? '-' : '') + fmt(ms.remaining) : '-'}</td>
-            <td class="status-col">${statusHtml}</td>
+            <td class="status-col">${statusBadge(ms.hasData, ms.remaining)}</td>
           </tr>
         `;
+
+        // Mobile card
+        const remainColor = !ms.hasData ? 'blue' : ms.remaining >= 0 ? 'green' : 'red';
+        cardsHtml += `
+          <div class="month-card ${isCurrent ? 'current-card' : ''} ${isViewing ? 'viewing-card' : ''}" data-y="${ms.year}" data-m="${ms.monthIndex}">
+            <div class="month-card-head">
+              <span class="mc-name">${MONTH_NAMES[ms.monthIndex]}</span>
+              ${statusBadge(ms.hasData, ms.remaining)}
+            </div>
+            <div class="month-card-grid">
+              <div class="mc-item">
+                <div class="mc-label">Budget</div>
+                <div class="mc-val blue">${ms.budget > 0 ? fmt(ms.budget) : '-'}</div>
+              </div>
+              <div class="mc-item">
+                <div class="mc-label">Expenses</div>
+                <div class="mc-val red">${ms.dailyExpenses > 0 ? fmt(ms.dailyExpenses) : '-'}</div>
+              </div>
+              <div class="mc-item">
+                <div class="mc-label">Subscriptions</div>
+                <div class="mc-val purple">${ms.subscriptions > 0 ? fmt(ms.subscriptions) : '-'}</div>
+              </div>
+              <div class="mc-item">
+                <div class="mc-label">Remaining</div>
+                <div class="mc-val ${remainColor}">${ms.hasData ? (ms.remaining < 0 ? '-' : '') + fmt(ms.remaining) : '-'}</div>
+              </div>
+            </div>
+          </div>
+        `;
       }
+      cardsHtml += '</div>';
     }
+
+    cardsHtml += '</div>';
   }
 
-  body.innerHTML = html;
+  // Inject HTML
+  body.innerHTML = tableHtml;
+  mobileWrap.innerHTML = cardsHtml;
 
-  // Year row toggle
+  // ── Desktop: year row toggle ──
   body.querySelectorAll<HTMLTableRowElement>('.year-header-row').forEach(row => {
     row.addEventListener('click', () => {
       const year = parseInt(row.dataset.year!);
-      if (expandedYears.has(year)) {
-        expandedYears.delete(year);
-      } else {
-        expandedYears.add(year);
-      }
+      if (expandedYears.has(year)) expandedYears.delete(year);
+      else expandedYears.add(year);
       renderMonthlySummary();
     });
   });
 
-  // Month row click → navigate
+  // ── Desktop: month row → navigate ──
   body.querySelectorAll<HTMLTableRowElement>('.month-row').forEach(row => {
     row.addEventListener('click', () => {
       currentYear = parseInt(row.dataset.y!);
       currentMonth = parseInt(row.dataset.m!);
+      selectedDay = null;
+      render();
+    });
+  });
+
+  // ── Mobile: year header toggle ──
+  mobileWrap.querySelectorAll<HTMLElement>('.year-card-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const year = parseInt(header.dataset.year!);
+      if (expandedYears.has(year)) expandedYears.delete(year);
+      else expandedYears.add(year);
+      renderMonthlySummary();
+    });
+  });
+
+  // ── Mobile: month card → navigate ──
+  mobileWrap.querySelectorAll<HTMLElement>('.month-card').forEach(card => {
+    card.addEventListener('click', () => {
+      currentYear = parseInt(card.dataset.y!);
+      currentMonth = parseInt(card.dataset.m!);
       selectedDay = null;
       render();
     });

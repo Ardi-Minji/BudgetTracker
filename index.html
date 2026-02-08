@@ -166,8 +166,9 @@
     background: #1e293b; border-radius: 0 0 12px 12px; border: 1px solid #334155;
     border-top: none; overflow: hidden; max-height: 0; transition: max-height .4s ease;
   }
-  .summary-table-wrap.open { max-height: 4000px; }
+  .summary-table-wrap.open { max-height: 8000px; }
 
+  /* ── Desktop Table View ── */
   .summary-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
 
   .summary-table thead th {
@@ -176,22 +177,15 @@
     color: #64748b; font-weight: 600; position: sticky; top: 0;
   }
 
-  /* Year header rows */
   .year-header-row {
-    cursor: pointer; transition: background .15s;
-    background: #162032;
+    cursor: pointer; transition: background .15s; background: #162032;
   }
   .year-header-row:hover { background: #1e3050; }
 
-  .year-header-cell {
-    display: flex; align-items: center; gap: 8px;
-  }
-  .year-chevron {
-    font-size: .7rem; color: #38bdf8; display: inline-block; width: 14px;
-  }
+  .year-header-cell { display: flex; align-items: center; gap: 8px; }
+  .year-chevron { font-size: .7rem; color: #38bdf8; display: inline-block; width: 14px; }
   .year-header-row td { padding: 12px 14px; font-weight: 600; border-bottom: 2px solid #334155; }
 
-  /* Month rows */
   .month-row {
     border-bottom: 1px solid #1e293b; cursor: pointer; transition: background .15s;
   }
@@ -219,6 +213,64 @@
   .status-badge.over { background: #7f1d1d; color: #f87171; }
   .status-badge.empty { background: #1e293b; color: #64748b; }
 
+  /* ── Mobile Card View ── */
+  .summary-cards-mobile { display: none; padding: 12px; }
+
+  .year-card-group { margin-bottom: 16px; }
+
+  .year-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #162032; padding: 14px 16px; border-radius: 10px;
+    cursor: pointer; border: 1px solid #334155; transition: background .15s;
+  }
+  .year-card-header:hover { background: #1e3050; }
+
+  .year-card-header .year-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 1.05rem; font-weight: 700; color: #e2e8f0;
+  }
+  .year-card-header .year-title .year-chevron { font-size: .7rem; color: #38bdf8; }
+
+  .year-card-header .year-stats {
+    display: flex; gap: 12px; font-size: .75rem;
+  }
+  .year-card-header .year-stats .ys-budget { color: #38bdf8; }
+  .year-card-header .year-stats .ys-remain { font-weight: 600; }
+  .year-card-header .year-stats .ys-remain.positive { color: #4ade80; }
+  .year-card-header .year-stats .ys-remain.negative { color: #f87171; }
+
+  .month-cards { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; padding-left: 8px; }
+
+  .month-card {
+    background: #0f172a; border-radius: 10px; padding: 14px;
+    border: 1px solid #1e293b; cursor: pointer; transition: background .15s, border-color .15s;
+  }
+  .month-card:hover { background: #1a2744; border-color: #334155; }
+  .month-card.current-card { border-color: #38bdf8; }
+  .month-card.viewing-card { border-left: 3px solid #a78bfa; }
+
+  .month-card-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .month-card-head .mc-name { font-weight: 700; font-size: .95rem; color: #e2e8f0; }
+  .month-card-head .mc-status { }
+
+  .month-card-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+  }
+  .month-card-grid .mc-item { }
+  .month-card-grid .mc-label {
+    font-size: .65rem; text-transform: uppercase; letter-spacing: .04em;
+    color: #64748b;
+  }
+  .month-card-grid .mc-val { font-size: .9rem; font-weight: 600; }
+  .month-card-grid .mc-val.blue { color: #38bdf8; }
+  .month-card-grid .mc-val.red { color: #f87171; }
+  .month-card-grid .mc-val.purple { color: #a78bfa; }
+  .month-card-grid .mc-val.green { color: #4ade80; }
+
+  /* ── Grand Totals ── */
   .summary-totals {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px; padding: 16px; border-top: 2px solid #334155;
@@ -226,6 +278,19 @@
   .summary-totals .st-card { text-align: center; }
   .summary-totals .st-label { font-size: .7rem; text-transform: uppercase; color: #64748b; letter-spacing: .05em; }
   .summary-totals .st-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
+
+  /* ── Responsive: hide table on mobile, show cards ── */
+  @media (max-width: 640px) {
+    .summary-table { display: none; }
+    .summary-cards-mobile { display: block; }
+    .summary-totals { grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+    .summary-totals .st-value { font-size: .95rem; }
+    .year-card-header .year-stats { display: none; }
+  }
+
+  @media (min-width: 641px) {
+    .summary-cards-mobile { display: none !important; }
+  }
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #1e293b; }
@@ -335,6 +400,7 @@
         </thead>
         <tbody id="summaryBody"></tbody>
       </table>
+      <div class="summary-cards-mobile" id="summaryCardsMobile"></div>
       <div class="summary-totals" id="summaryTotals"></div>
     </div>
   </div>
