@@ -20,16 +20,6 @@ A monthly budget tracking web app with a calendar view. Track daily expenses, ma
 
 ## Getting Started
 
-```bash
-npm install
-npm run dev
-```
+Open `https://budget-five-liart.vercel.app/` in your browser.
 
-Open `http://localhost:5173` in your browser.
 
-## Build
-
-```bash
-npm run build
-npm run preview
-```
