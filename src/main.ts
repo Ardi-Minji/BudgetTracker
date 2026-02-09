@@ -736,18 +736,39 @@ el('themeToggle').addEventListener('click', () => {
 });
 
 el('prevMonth').addEventListener('click', () => {
-  currentMonth--;
-  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-  selectedDay = null; render();
+  slideCalendar('right', () => {
+    currentMonth--;
+    if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    selectedDay = null; render();
+  });
 });
 
 el('nextMonth').addEventListener('click', () => {
-  currentMonth++;
-  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-  selectedDay = null; render();
+  slideCalendar('left', () => {
+    currentMonth++;
+    if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    selectedDay = null; render();
+  });
 });
 
 // ── Swipe Gesture for Month Navigation ──────────────────────────────
+function slideCalendar(direction: 'left' | 'right', then: () => void): void {
+  const grid = el('calendarGrid');
+  // Slide current content out
+  grid.classList.add(direction === 'left' ? 'slide-out-left' : 'slide-out-right');
+  grid.addEventListener('transitionend', function handler() {
+    grid.removeEventListener('transitionend', handler);
+    // Update data
+    then();
+    // Position new content on opposite side (no transition)
+    grid.classList.remove('slide-out-left', 'slide-out-right');
+    grid.classList.add(direction === 'left' ? 'slide-in-left' : 'slide-in-right');
+    // Force reflow then slide in
+    void grid.offsetWidth;
+    grid.classList.remove('slide-in-left', 'slide-in-right');
+  }, { once: true });
+}
+
 (() => {
   const calendar = el('calendarGrid');
   let startX = 0;
@@ -765,17 +786,18 @@ el('nextMonth').addEventListener('click', () => {
     // Only trigger if horizontal swipe is dominant and long enough
     if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
 
-    if (dx < 0) {
-      // Swipe left → next month
-      currentMonth++;
-      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-    } else {
-      // Swipe right → previous month
-      currentMonth--;
-      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-    }
-    selectedDay = null;
-    render();
+    const direction: 'left' | 'right' = dx < 0 ? 'left' : 'right';
+    slideCalendar(direction, () => {
+      if (dx < 0) {
+        currentMonth++;
+        if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      } else {
+        currentMonth--;
+        if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      }
+      selectedDay = null;
+      render();
+    });
   }, { passive: true });
 })();
 
