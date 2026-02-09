@@ -653,26 +653,37 @@ function renderMonthlySummary(): void {
     });
   });
 
-  // Grand totals
-  const grandRemaining = grandBudget - grandExpenses - grandSubs;
-  el('summaryTotals').innerHTML = `
-    <div class="st-card">
-      <div class="st-label">Total Budget (All Time)</div>
-      <div class="st-value" style="color:var(--accent);">${fmt(grandBudget)}</div>
-    </div>
-    <div class="st-card">
-      <div class="st-label">Total Daily Expenses</div>
-      <div class="st-value" style="color:var(--danger);">${fmt(grandExpenses)}</div>
-    </div>
-    <div class="st-card">
-      <div class="st-label">Total Subscriptions</div>
-      <div class="st-value" style="color:var(--purple);">${fmt(grandSubs)}</div>
-    </div>
-    <div class="st-card">
-      <div class="st-label">Overall Remaining</div>
-      <div class="st-value" style="color:var(${grandRemaining >= 0 ? '--success' : '--danger'});">${grandRemaining < 0 ? '-' : ''}${fmt(grandRemaining)}</div>
-    </div>
-  `;
+  // Per-year totals
+  let totalsHtml = '';
+  for (const ys of yearSummaries) {
+    const yearHasData = ys.totalBudget > 0 || ys.totalExpenses > 0 || ys.totalSubs > 0;
+    if (!yearHasData) continue;
+    const savings = ys.remaining;
+    totalsHtml += `
+      <div class="st-year-group">
+        <div class="st-year-label">${ys.year}</div>
+        <div class="st-year-grid">
+          <div class="st-card">
+            <div class="st-label">Budget</div>
+            <div class="st-value" style="color:var(--accent);">${fmt(ys.totalBudget)}</div>
+          </div>
+          <div class="st-card">
+            <div class="st-label">Expenses</div>
+            <div class="st-value" style="color:var(--danger);">${fmt(ys.totalExpenses)}</div>
+          </div>
+          <div class="st-card">
+            <div class="st-label">Subscriptions</div>
+            <div class="st-value" style="color:var(--purple);">${fmt(ys.totalSubs)}</div>
+          </div>
+          <div class="st-card">
+            <div class="st-label">Savings</div>
+            <div class="st-value" style="color:var(${savings >= 0 ? '--success' : '--danger'});">${savings < 0 ? '-' : ''}${fmt(savings)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  el('summaryTotals').innerHTML = totalsHtml;
 }
 
 // ── Event Listeners ──────────────────────────────────────────────────
