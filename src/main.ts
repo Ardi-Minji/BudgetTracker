@@ -128,6 +128,13 @@ function editExpenseModal(expense: { name: string; amount: number; category?: st
 function editSubscriptionModal(sub: { name: string; amount: number; day: number }): Promise<{ name: string; amount: number; day: number } | null> {
   return new Promise((resolve) => {
     const container = el('dialogContainer');
+    // Build a date string for the current month with the sub's day pre-selected
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(Math.min(sub.day, new Date(y, now.getMonth() + 1, 0).getDate())).padStart(2, '0');
+    const defaultDate = `${y}-${m}-${d}`;
+
     container.innerHTML = `
       <div class="edit-overlay">
         <div class="edit-box">
@@ -139,7 +146,8 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
             <input type="number" id="editSubAmount" value="${sub.amount}" min="0" step="0.01" placeholder="Amount">
           </div>
           <div class="form-row">
-            <input type="number" id="editSubDay" value="${sub.day}" min="1" max="31" placeholder="Due day (1-31)">
+            <label style="font-size:.8rem;color:var(--text-secondary);margin-bottom:4px;display:block;">Due Day</label>
+            <input type="date" id="editSubDay" value="${defaultDate}">
           </div>
           <div class="edit-actions">
             <button class="btn btn-secondary" id="editSubCancel">Cancel</button>
@@ -152,7 +160,8 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
     el('editSubSave').addEventListener('click', () => {
       const name = (el('editSubName') as HTMLInputElement).value.trim();
       const amount = parseFloat((el('editSubAmount') as HTMLInputElement).value);
-      const day = parseInt((el('editSubDay') as HTMLInputElement).value);
+      const dateVal = (el('editSubDay') as HTMLInputElement).value;
+      const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : 0;
       if (!name || !amount || amount <= 0 || !day || day < 1 || day > 31) return;
       container.innerHTML = '';
       resolve({ name, amount, day });
