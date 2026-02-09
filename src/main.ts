@@ -139,7 +139,8 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
             <input type="number" id="editSubAmount" value="${sub.amount}" min="0" step="0.01" placeholder="Amount">
           </div>
           <div class="form-row">
-            <input type="number" id="editSubDay" value="${sub.day}" min="1" max="31" placeholder="Due day (1-31)">
+            <label style="font-size:.8rem;color:var(--text-secondary);margin-bottom:4px;display:block;">Due Day</label>
+            <input type="date" id="editSubDay" value="">
           </div>
           <div class="edit-actions">
             <button class="btn btn-secondary" id="editSubCancel">Cancel</button>
@@ -152,7 +153,8 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
     el('editSubSave').addEventListener('click', () => {
       const name = (el('editSubName') as HTMLInputElement).value.trim();
       const amount = parseFloat((el('editSubAmount') as HTMLInputElement).value);
-      const day = parseInt((el('editSubDay') as HTMLInputElement).value);
+      const dateVal = (el('editSubDay') as HTMLInputElement).value;
+      const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : sub.day;
       if (!name || !amount || amount <= 0 || !day || day < 1 || day > 31) return;
       container.innerHTML = '';
       resolve({ name, amount, day });
