@@ -57,6 +57,74 @@ function escHtml(s: string): string {
   return d.innerHTML;
 }
 
+const CATEGORIES = ['food', 'transport', 'bills', 'shopping', 'health', 'entertainment', 'other'];
+
+function catBadge(cat?: string): string {
+  if (!cat) return '';
+  return `<span class="cat-badge ${escHtml(cat)}">${escHtml(cat)}</span>`;
+}
+
+// ── Confirm Dialog ──────────────────────────────────────────────────
+function confirmAction(message: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const container = el('dialogContainer');
+    container.innerHTML = `
+      <div class="confirm-overlay">
+        <div class="confirm-box">
+          <p>${escHtml(message)}</p>
+          <div class="confirm-actions">
+            <button class="btn btn-secondary" id="confirmNo">Cancel</button>
+            <button class="btn btn-danger" id="confirmYes">Delete</button>
+          </div>
+        </div>
+      </div>
+    `;
+    el('confirmYes').addEventListener('click', () => { container.innerHTML = ''; resolve(true); });
+    el('confirmNo').addEventListener('click', () => { container.innerHTML = ''; resolve(false); });
+  });
+}
+
+// ── Edit Expense Modal ──────────────────────────────────────────────
+function editExpenseModal(expense: { name: string; amount: number; category?: string }): Promise<{ name: string; amount: number; category: string } | null> {
+  return new Promise((resolve) => {
+    const container = el('dialogContainer');
+    const catOptions = ['<option value="">No Category</option>']
+      .concat(CATEGORIES.map(c =>
+        `<option value="${c}" ${expense.category === c ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
+      )).join('');
+
+    container.innerHTML = `
+      <div class="edit-overlay">
+        <div class="edit-box">
+          <h3>Edit Expense</h3>
+          <div class="form-row">
+            <input type="text" id="editName" value="${escHtml(expense.name)}">
+          </div>
+          <div class="form-row">
+            <input type="number" id="editAmount" value="${expense.amount}" min="0" step="0.01">
+          </div>
+          <div class="form-row">
+            <select id="editCategory">${catOptions}</select>
+          </div>
+          <div class="edit-actions">
+            <button class="btn btn-secondary" id="editCancel">Cancel</button>
+            <button class="btn btn-primary" id="editSave">Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+    el('editCancel').addEventListener('click', () => { container.innerHTML = ''; resolve(null); });
+    el('editSave').addEventListener('click', () => {
+      const name = (el('editName') as HTMLInputElement).value.trim();
+      const amount = parseFloat((el('editAmount') as HTMLInputElement).value);
+      const category = (el('editCategory') as HTMLSelectElement).value;
+      if (!name || !amount || amount <= 0) return;
+      container.innerHTML = '';
+      resolve({ name, amount, category });
+    });
+  });
+}
+
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -205,17 +273,35 @@ function renderDayExpenses(): void {
 
   list.innerHTML = expenses.map((e, i) => `
     <div class="expense-item">
-      <span class="name">${escHtml(e.name)}</span>
+      <span class="name">${catBadge(e.category)}${escHtml(e.name)}</span>
       <span class="amount">-${fmt(e.amount)}</span>
+      <button class="edit-btn" data-idx="${i}" data-dk="${dk}" title="Edit">&#9998;</button>
       <button class="del-btn" data-idx="${i}" data-dk="${dk}">&times;</button>
     </div>
   `).join('');
 
-  list.querySelectorAll<HTMLButtonElement>('.del-btn').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
+  list.querySelectorAll<HTMLButtonElement>('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
       const idx = parseInt(btn.dataset.idx!);
       const key = btn.dataset.dk!;
+      const expense = md.expenses[key][idx];
+      const result = await editExpenseModal(expense);
+      if (result) {
+        md.expenses[key][idx] = result;
+        save(); render();
+      }
+    });
+  });
+
+  list.querySelectorAll<HTMLButtonElement>('.del-btn').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx!);
+      const key = btn.dataset.dk!;
+      const expense = md.expenses[key][idx];
+      const confirmed = await confirmAction(`Delete "${expense.name}"?`);
+      if (!confirmed) return;
       md.expenses[key].splice(idx, 1);
       if (md.expenses[key].length === 0) delete md.expenses[key];
       save(); render();
@@ -242,9 +328,13 @@ function renderSubscriptions(): void {
   `).join('');
 
   list.querySelectorAll<HTMLButtonElement>('.del-btn').forEach(btn => {
-    btn.addEventListener('click', (ev) => {
+    btn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
-      md.subscriptions.splice(parseInt(btn.dataset.idx!), 1);
+      const idx = parseInt(btn.dataset.idx!);
+      const sub = md.subscriptions[idx];
+      const confirmed = await confirmAction(`Delete "${sub.name}"?`);
+      if (!confirmed) return;
+      md.subscriptions.splice(idx, 1);
       save(); render();
     });
   });
@@ -544,14 +634,16 @@ el('addExpenseBtn').addEventListener('click', () => {
   if (!selectedDay) { alert('Please select a day on the calendar first.'); return; }
   const nameInput = el('expenseName') as HTMLInputElement;
   const amountInput = el('expenseAmount') as HTMLInputElement;
+  const catSelect = el('expenseCategory') as HTMLSelectElement;
   const name = nameInput.value.trim();
   const amount = parseFloat(amountInput.value);
+  const category = catSelect.value;
   if (!name || !amount || amount <= 0) { alert('Enter a description and valid amount.'); return; }
 
   const md = getMonthData(currentYear, currentMonth);
   const dk = dayKey(currentYear, currentMonth, selectedDay);
   if (!md.expenses[dk]) md.expenses[dk] = [];
-  md.expenses[dk].push({ name, amount });
+  md.expenses[dk].push({ name, amount, ...(category ? { category } : {}) });
   save();
 
   nameInput.value = '';
