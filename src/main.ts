@@ -865,10 +865,18 @@ el('summaryToggle').addEventListener('click', () => {
 
 // ── Auth UI ──────────────────────────────────────────────────────────
 
+function hideLoadingScreen(): void {
+  const splash = document.getElementById('loadingScreen');
+  if (!splash) return;
+  splash.classList.add('fade-out');
+  setTimeout(() => splash.remove(), 400);
+}
+
 function showAuthScreen(): void {
   el('authScreen').style.display = 'flex';
   el('appMain').style.display = 'none';
   el('authError').textContent = '';
+  hideLoadingScreen();
 }
 
 function showApp(user: User): void {
@@ -876,6 +884,7 @@ function showApp(user: User): void {
   el('appMain').style.display = 'block';
   el('userEmail').textContent = user.email ?? '';
   el('userBar').style.display = 'flex';
+  hideLoadingScreen();
 }
 
 el('authSubmit').addEventListener('click', async () => {
