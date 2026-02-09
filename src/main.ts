@@ -502,6 +502,38 @@ el('nextMonth').addEventListener('click', () => {
   selectedDay = null; render();
 });
 
+// ── Swipe Gesture for Month Navigation ──────────────────────────────
+(() => {
+  const calendar = el('calendarGrid');
+  let startX = 0;
+  let startY = 0;
+
+  calendar.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  calendar.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+
+    // Only trigger if horizontal swipe is dominant and long enough
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+
+    if (dx < 0) {
+      // Swipe left → next month
+      currentMonth++;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+    } else {
+      // Swipe right → previous month
+      currentMonth--;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+    }
+    selectedDay = null;
+    render();
+  }, { passive: true });
+})();
+
 el('budgetInput').addEventListener('input', () => {
   const md = getMonthData(currentYear, currentMonth);
   md.budget = parseFloat((el('budgetInput') as HTMLInputElement).value) || 0;
