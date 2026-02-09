@@ -125,6 +125,44 @@ function editExpenseModal(expense: { name: string; amount: number; category?: st
   });
 }
 
+function editSubscriptionModal(sub: { name: string; amount: number; day: number }): Promise<{ name: string; amount: number; day: number } | null> {
+  return new Promise((resolve) => {
+    const container = el('dialogContainer');
+    container.innerHTML = `
+      <div class="edit-overlay">
+        <div class="edit-box">
+          <h3>Edit Subscription</h3>
+          <div class="form-row">
+            <input type="text" id="editSubName" value="${escHtml(sub.name)}" placeholder="Name">
+          </div>
+          <div class="form-row">
+            <input type="number" id="editSubAmount" value="${sub.amount}" min="0" step="0.01" placeholder="Amount">
+          </div>
+          <div class="form-row">
+            <input type="number" id="editSubDay" value="${sub.day}" min="1" max="31" placeholder="Due day (1-31)">
+          </div>
+          <div class="edit-actions">
+            <button class="btn btn-secondary" id="editSubCancel">Cancel</button>
+            <button class="btn btn-primary" id="editSubSave">Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+    el('editSubCancel').addEventListener('click', () => { container.innerHTML = ''; resolve(null); });
+    el('editSubSave').addEventListener('click', () => {
+      const name = (el('editSubName') as HTMLInputElement).value.trim();
+      const amount = parseFloat((el('editSubAmount') as HTMLInputElement).value);
+      const day = parseInt((el('editSubDay') as HTMLInputElement).value);
+      if (!name || !amount || amount <= 0 || !day || day < 1 || day > 31) return;
+      container.innerHTML = '';
+      resolve({ name, amount, day });
+    });
+    container.querySelector('.edit-overlay')!.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) { container.innerHTML = ''; resolve(null); }
+    });
+  });
+}
+
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -323,9 +361,24 @@ function renderSubscriptions(): void {
     <div class="sub-item">
       <div class="info">${escHtml(s.name)}<small>Due: Day ${s.day}</small></div>
       <span class="amount">${fmt(s.amount)}</span>
+      <button class="edit-btn" data-idx="${i}">&#9998;</button>
       <button class="del-btn" data-idx="${i}">&times;</button>
     </div>
   `).join('');
+
+  list.querySelectorAll<HTMLButtonElement>('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx!);
+      const sub = md.subscriptions[idx];
+      const result = await editSubscriptionModal(sub);
+      if (!result) return;
+      sub.name = result.name;
+      sub.amount = result.amount;
+      sub.day = result.day;
+      save(); render();
+    });
+  });
 
   list.querySelectorAll<HTMLButtonElement>('.del-btn').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
