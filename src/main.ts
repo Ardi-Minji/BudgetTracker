@@ -192,18 +192,6 @@ function getMonthData(y: number, m: number): MonthData {
   return data[key];
 }
 
-// ── Init sub day dropdown ────────────────────────────────────────────
-function initSubDaySelect(): void {
-  const sel = el('subDay') as HTMLSelectElement;
-  sel.innerHTML = '';
-  for (let i = 1; i <= 31; i++) {
-    const opt = document.createElement('option');
-    opt.value = String(i);
-    opt.textContent = `Day ${i}`;
-    sel.appendChild(opt);
-  }
-}
-
 // ── Calendar Render ──────────────────────────────────────────────────
 function render(): void {
   const md = getMonthData(currentYear, currentMonth);
@@ -821,11 +809,12 @@ el('addExpenseBtn').addEventListener('click', () => {
 el('addSubBtn').addEventListener('click', () => {
   const nameInput = el('subName') as HTMLInputElement;
   const amountInput = el('subAmount') as HTMLInputElement;
-  const daySelect = el('subDay') as HTMLSelectElement;
+  const dayInput = el('subDay') as HTMLInputElement;
   const name = nameInput.value.trim();
   const amount = parseFloat(amountInput.value);
-  const day = parseInt(daySelect.value);
-  if (!name || !amount || amount <= 0) { alert('Enter a name and valid amount.'); return; }
+  const dateVal = dayInput.value;
+  const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : 0;
+  if (!name || !amount || amount <= 0 || !day) { alert('Enter a name, valid amount, and due date.'); return; }
 
   const md = getMonthData(currentYear, currentMonth);
   md.subscriptions.push({ name, amount, day });
@@ -833,6 +822,7 @@ el('addSubBtn').addEventListener('click', () => {
 
   nameInput.value = '';
   amountInput.value = '';
+  dayInput.value = '';
   render();
 });
 
@@ -922,8 +912,6 @@ el('logoutBtn').addEventListener('click', async () => {
 });
 
 // ── Init ─────────────────────────────────────────────────────────────
-initSubDaySelect();
-
 const now = new Date();
 currentYear = now.getFullYear();
 currentMonth = now.getMonth();
