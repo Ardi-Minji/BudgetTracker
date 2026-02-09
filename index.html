@@ -203,6 +203,56 @@
   }
   .btn-primary { background: var(--btn-primary); color: #fff; }
   .btn-primary:hover { background: var(--btn-primary-hover); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { opacity: .85; }
+  .btn-secondary { background: var(--border); color: var(--text-primary); }
+  .btn-secondary:hover { opacity: .85; }
+
+  /* Category badge */
+  .cat-badge {
+    display: inline-block; font-size: .65rem; padding: 1px 6px; border-radius: 999px;
+    font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
+    background: var(--border); color: var(--text-secondary); margin-right: 4px; vertical-align: middle;
+  }
+  .cat-badge.food { background: #f97316; color: #fff; }
+  .cat-badge.transport { background: #3b82f6; color: #fff; }
+  .cat-badge.bills { background: #eab308; color: #1e293b; }
+  .cat-badge.shopping { background: #ec4899; color: #fff; }
+  .cat-badge.health { background: #22c55e; color: #fff; }
+  .cat-badge.entertainment { background: #a855f7; color: #fff; }
+  .cat-badge.other { background: var(--border-hover); color: var(--text-primary); }
+
+  /* Edit/action buttons on expense items */
+  .expense-item .edit-btn, .sub-item .edit-btn {
+    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: .85rem; padding: 0 4px;
+  }
+  .expense-item .edit-btn:hover, .sub-item .edit-btn:hover { color: var(--accent); }
+
+  /* Confirm dialog overlay */
+  .confirm-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex;
+    align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  }
+  .confirm-box {
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; max-width: 320px; width: 100%; text-align: center;
+  }
+  .confirm-box p { font-size: .95rem; margin-bottom: 16px; color: var(--text-primary); }
+  .confirm-box .confirm-actions { display: flex; gap: 10px; justify-content: center; }
+  .confirm-box .confirm-actions .btn { min-width: 90px; }
+
+  /* Edit modal */
+  .edit-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex;
+    align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  }
+  .edit-box {
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; max-width: 360px; width: 100%;
+  }
+  .edit-box h3 { font-size: 1rem; margin-bottom: 14px; color: var(--text-heading); }
+  .edit-box .form-row { margin-bottom: 10px; }
+  .edit-box .edit-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 
   .expense-list { max-height: 240px; overflow-y: auto; }
 
@@ -572,6 +622,18 @@
           <input type="text" id="expenseName" placeholder="Description">
           <input type="number" id="expenseAmount" placeholder="Amount" min="0" step="0.01" style="max-width:100px;">
         </div>
+        <div class="form-row">
+          <select id="expenseCategory">
+            <option value="">No Category</option>
+            <option value="food">Food</option>
+            <option value="transport">Transport</option>
+            <option value="bills">Bills</option>
+            <option value="shopping">Shopping</option>
+            <option value="health">Health</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <button class="btn btn-primary" id="addExpenseBtn" style="width:100%;">Add Expense</button>
         <div class="expense-list" id="expenseList" style="margin-top:12px;"></div>
       </div>
@@ -619,6 +681,8 @@
     </div>
   </div>
 </div>
+
+<div id="dialogContainer"></div>
 
 <script type="module" src="/src/main.ts"></script>
 </body>
