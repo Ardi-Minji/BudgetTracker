@@ -653,9 +653,10 @@ function renderMonthlySummary(): void {
     });
   });
 
-  // Per-year totals
+  // Per-year totals (only for expanded/selected years)
   let totalsHtml = '';
   for (const ys of yearSummaries) {
+    if (!expandedYears.has(ys.year)) continue;
     const yearHasData = ys.totalBudget > 0 || ys.totalExpenses > 0 || ys.totalSubs > 0;
     if (!yearHasData) continue;
     const savings = ys.remaining;
