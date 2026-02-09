@@ -575,9 +575,68 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: var(--scrollbar-track); }
   ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+
+  /* Loading Splash Screen */
+  .loading-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: #d98a7e;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px;
+    transition: opacity .4s ease;
+  }
+  .loading-screen.fade-out { opacity: 0; pointer-events: none; }
+
+  .loading-cat {
+    width: 200px; max-width: 60vw;
+    animation: catBounce 1.2s ease-in-out infinite;
+  }
+  @keyframes catBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .loading-bar-track {
+    width: 200px; max-width: 60vw; height: 28px;
+    background: #fff; border-radius: 14px;
+    overflow: hidden; position: relative;
+  }
+  .loading-bar-fill {
+    height: 100%; width: 30%;
+    background: linear-gradient(90deg, #f5c542, #f0a830);
+    border-radius: 14px;
+    animation: barSlide 1.5s ease-in-out infinite;
+  }
+  @keyframes barSlide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(430%); }
+  }
+
+  .loading-text {
+    font-size: .9rem; font-weight: 700; color: #fff;
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+  .loading-dots::after {
+    content: '';
+    animation: dots 1.5s steps(3, end) infinite;
+  }
+  @keyframes dots {
+    0% { content: ''; }
+    33% { content: '.'; }
+    66% { content: '..'; }
+    100% { content: '...'; }
+  }
 </style>
 </head>
 <body>
+
+<!-- Loading Splash Screen -->
+<div id="loadingScreen" class="loading-screen">
+  <img src="/icons/loading-cat.png" alt="Loading" class="loading-cat">
+  <div class="loading-bar-track">
+    <div class="loading-bar-fill"></div>
+  </div>
+  <div class="loading-text">LOADING<span class="loading-dots"></span></div>
+</div>
 
 <!-- Auth Screen -->
 <div class="auth-screen" id="authScreen" style="display:none;">
