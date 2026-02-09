@@ -398,6 +398,114 @@ function statusBadge(hasData: boolean, remaining: number): string {
     : '<span class="status-badge over">Over Budget</span>';
 }
 
+// ── Month Detail Modal ──────────────────────────────────────────────
+function showMonthDetail(year: number, monthIdx: number): void {
+  const key = monthKey(year, monthIdx);
+  const md: MonthData = data[key] || { budget: 0, subscriptions: [], expenses: {} };
+
+  // Compute category breakdown
+  const catTotals = new Map<string, number>();
+  let totalDailyExp = 0;
+  for (const dk in md.expenses) {
+    for (const e of md.expenses[dk] || []) {
+      const cat = e.category || 'uncategorized';
+      catTotals.set(cat, (catTotals.get(cat) || 0) + e.amount);
+      totalDailyExp += e.amount;
+    }
+  }
+
+  const totalSubs = md.subscriptions.reduce((s, sub) => s + sub.amount, 0);
+  const totalSpent = totalDailyExp + totalSubs;
+  const remaining = (md.budget || 0) - totalSpent;
+  const hasData = md.budget > 0 || totalDailyExp > 0 || totalSubs > 0;
+
+  // Sort categories by amount descending
+  const sorted = [...catTotals.entries()].sort((a, b) => b[1] - a[1]);
+  const maxCat = sorted.length > 0 ? sorted[0][1] : 0;
+
+  // Category bar colors
+  const catColors: Record<string, string> = {
+    food: '#f97316', transport: '#3b82f6', bills: '#eab308', shopping: '#ec4899',
+    health: '#22c55e', entertainment: '#a855f7', other: '#94a3b8', uncategorized: '#64748b',
+  };
+
+  let catRowsHtml = '';
+  if (sorted.length === 0) {
+    catRowsHtml = '<div class="empty-msg">No expenses recorded</div>';
+  } else {
+    for (const [cat, amount] of sorted) {
+      const pct = totalDailyExp > 0 ? (amount / totalDailyExp * 100) : 0;
+      const barW = maxCat > 0 ? (amount / maxCat * 100) : 0;
+      const color = catColors[cat] || '#64748b';
+      const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+      catRowsHtml += `
+        <div class="cat-row">
+          <div class="cat-info">
+            <span class="cat-badge ${escHtml(cat)}">${escHtml(label)}</span>
+            <div class="cat-bar-bg"><div class="cat-bar" style="width:${barW}%;background:${color};"></div></div>
+          </div>
+          <span class="cat-pct">${pct.toFixed(0)}%</span>
+          <span class="cat-amount">${fmt(amount)}</span>
+        </div>
+      `;
+    }
+  }
+
+  // Subscription breakdown
+  let subsHtml = '';
+  if (md.subscriptions.length > 0) {
+    subsHtml = '<div class="cat-section-title" style="margin-top:14px;">Subscriptions</div>';
+    for (const s of md.subscriptions) {
+      subsHtml += `
+        <div class="cat-row">
+          <div class="cat-info">
+            <span style="font-size:.85rem;">${escHtml(s.name)}</span>
+            <small style="color:var(--text-tertiary);font-size:.7rem;">Day ${s.day}</small>
+          </div>
+          <span class="cat-amount" style="color:var(--purple);">${fmt(s.amount)}</span>
+        </div>
+      `;
+    }
+  }
+
+  const container = el('dialogContainer');
+  container.innerHTML = `
+    <div class="detail-overlay">
+      <div class="detail-box">
+        <h3>${MONTH_NAMES[monthIdx]} ${year}</h3>
+        <div class="detail-status">${statusBadge(hasData, remaining)}</div>
+        <div class="detail-stats">
+          <div><div class="ds-label">Budget</div><div class="ds-val" style="color:var(--accent);">${md.budget > 0 ? fmt(md.budget) : '-'}</div></div>
+          <div><div class="ds-label">Daily Expenses</div><div class="ds-val" style="color:var(--danger);">${totalDailyExp > 0 ? fmt(totalDailyExp) : '-'}</div></div>
+          <div><div class="ds-label">Subscriptions</div><div class="ds-val" style="color:var(--purple);">${totalSubs > 0 ? fmt(totalSubs) : '-'}</div></div>
+          <div><div class="ds-label">Remaining</div><div class="ds-val" style="color:var(${remaining >= 0 ? '--success' : '--danger'});">${hasData ? (remaining < 0 ? '-' : '') + fmt(remaining) : '-'}</div></div>
+        </div>
+        <div class="cat-section-title">Expenses by Category</div>
+        ${catRowsHtml}
+        ${subsHtml}
+        <div class="detail-actions">
+          <button class="btn btn-secondary" id="detailClose">Close</button>
+          <button class="btn btn-primary" id="detailGoTo">Go to Month</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  el('detailClose').addEventListener('click', () => { container.innerHTML = ''; });
+  el('detailGoTo').addEventListener('click', () => {
+    container.innerHTML = '';
+    currentYear = year;
+    currentMonth = monthIdx;
+    selectedDay = null;
+    render();
+  });
+
+  // Close on overlay click
+  container.querySelector('.detail-overlay')!.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) container.innerHTML = '';
+  });
+}
+
 function renderMonthlySummary(): void {
   const body = el('summaryBody');
   const mobileWrap = el('summaryCardsMobile');
@@ -521,13 +629,10 @@ function renderMonthlySummary(): void {
     });
   });
 
-  // ── Desktop: month row → navigate ──
+  // ── Desktop: month row → show detail ──
   body.querySelectorAll<HTMLTableRowElement>('.month-row').forEach(row => {
     row.addEventListener('click', () => {
-      currentYear = parseInt(row.dataset.y!);
-      currentMonth = parseInt(row.dataset.m!);
-      selectedDay = null;
-      render();
+      showMonthDetail(parseInt(row.dataset.y!), parseInt(row.dataset.m!));
     });
   });
 
@@ -541,13 +646,10 @@ function renderMonthlySummary(): void {
     });
   });
 
-  // ── Mobile: month card → navigate ──
+  // ── Mobile: month card → show detail ──
   mobileWrap.querySelectorAll<HTMLElement>('.month-card').forEach(card => {
     card.addEventListener('click', () => {
-      currentYear = parseInt(card.dataset.y!);
-      currentMonth = parseInt(card.dataset.m!);
-      selectedDay = null;
-      render();
+      showMonthDetail(parseInt(card.dataset.y!), parseInt(card.dataset.m!));
     });
   });
 
