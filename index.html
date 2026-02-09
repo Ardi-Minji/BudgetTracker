@@ -160,7 +160,12 @@
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
   .weekdays span { font-size: .75rem; font-weight: 600; color: var(--text-tertiary); padding: 6px 0; text-transform: uppercase; }
 
-  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; transition: transform .25s ease, opacity .25s ease; }
+  .days.slide-out-left  { transform: translateX(-100%); opacity: 0; }
+  .days.slide-out-right { transform: translateX(100%);  opacity: 0; }
+  .days.slide-in-left   { transform: translateX(100%);  opacity: 0; transition: none; }
+  .days.slide-in-right  { transform: translateX(-100%); opacity: 0; transition: none; }
+  .calendar-wrap { overflow: hidden; }
 
   .day {
     background: var(--bg-primary); border-radius: 8px; min-height: 80px; padding: 6px 8px;
