@@ -365,13 +365,11 @@ function buildYearSummaries(): YearSummary[] {
   for (const key in data) {
     if (/^\d{4}-\d{2}$/.test(key)) allKeys.add(key);
   }
-  for (let m = 0; m < 12; m++) {
-    allKeys.add(monthKey(currentYear, m));
-  }
 
   const byYear = new Map<number, MonthSummary[]>();
   for (const key of allKeys) {
     const ms = computeMonthSummary(key);
+    if (!ms.hasData) continue; // Skip months with no data
     if (!byYear.has(ms.year)) byYear.set(ms.year, []);
     byYear.get(ms.year)!.push(ms);
   }
