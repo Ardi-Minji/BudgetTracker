@@ -15,6 +15,8 @@ function setTheme(theme: string): void {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('budget-theme', theme);
   updateThemeToggleIcon(theme);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#f8fafc');
 }
 
 function updateThemeToggleIcon(theme: string): void {
@@ -650,3 +652,8 @@ setAuthCallback(async (user: User | null) => {
 });
 
 initAuth();
+
+// ── Service Worker Registration ─────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
