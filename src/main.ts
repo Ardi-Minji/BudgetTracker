@@ -435,8 +435,8 @@ function buildYearSummaries(): YearSummary[] {
 function statusBadge(hasData: boolean, remaining: number): string {
   if (!hasData) return '<span class="status-badge empty">No Data</span>';
   return remaining >= 0
-    ? '<span class="status-badge under">Under Budget</span>'
-    : '<span class="status-badge over">Over Budget</span>';
+    ? '<img src="/icons/Good-budget.png" alt="Under Budget" class="status-icon">'
+    : '<img src="/icons/Bad-budget.png" alt="Over Budget" class="status-icon">';
 }
 
 // ── Month Detail Modal ──────────────────────────────────────────────
