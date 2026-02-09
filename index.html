@@ -455,6 +455,15 @@
     display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px; padding: 16px; border-top: 2px solid var(--border);
   }
+  .summary-totals .st-year-group { margin-bottom: 14px; }
+  .summary-totals .st-year-group:last-child { margin-bottom: 0; }
+  .summary-totals .st-year-label {
+    font-size: .8rem; font-weight: 700; color: var(--text-heading);
+    margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .summary-totals .st-year-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px;
+  }
   .summary-totals .st-card { text-align: center; }
   .summary-totals .st-label { font-size: .7rem; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: .05em; }
   .summary-totals .st-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
@@ -473,7 +482,8 @@
     .days { gap: 3px; }
     .summary-table { display: none; }
     .summary-cards-mobile { display: block; }
-    .summary-totals { grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; }
+    .summary-totals { padding: 12px; }
+    .summary-totals .st-year-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .summary-totals .st-value { font-size: .95rem; }
     .year-card-header .year-stats { display: none; }
   }
