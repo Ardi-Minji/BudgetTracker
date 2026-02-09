@@ -254,6 +254,45 @@
   .edit-box .form-row { margin-bottom: 10px; }
   .edit-box .edit-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
 
+  /* Month Detail Modal */
+  .detail-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex;
+    align-items: center; justify-content: center; z-index: 1000; padding: 20px;
+  }
+  .detail-box {
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; max-width: 420px; width: 100%; max-height: 85vh; overflow-y: auto;
+  }
+  .detail-box h3 { font-size: 1.1rem; margin-bottom: 4px; color: var(--text-primary); }
+  .detail-box .detail-status { margin-bottom: 16px; }
+  .detail-box .detail-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; margin-bottom: 18px;
+  }
+  .detail-box .ds-label { font-size: .65rem; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: .04em; }
+  .detail-box .ds-val { font-size: 1rem; font-weight: 700; }
+
+  .detail-box .cat-section-title {
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-tertiary); margin-bottom: 8px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-box .cat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid var(--bg-elevated);
+  }
+  .detail-box .cat-row:last-child { border-bottom: none; }
+  .detail-box .cat-row .cat-info { display: flex; align-items: center; gap: 8px; }
+  .detail-box .cat-row .cat-amount { font-weight: 600; color: var(--danger); font-size: .9rem; }
+  .detail-box .cat-row .cat-pct { font-size: .75rem; color: var(--text-tertiary); min-width: 38px; text-align: right; }
+  .detail-box .cat-bar-bg {
+    flex: 1; height: 6px; background: var(--border); border-radius: 3px; margin: 0 8px;
+    min-width: 40px; max-width: 80px;
+  }
+  .detail-box .cat-bar { height: 100%; border-radius: 3px; }
+
+  .detail-box .detail-actions { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+  .detail-box .detail-actions .btn { min-width: 100px; }
+
   .expense-list { max-height: 240px; overflow-y: auto; }
 
   .expense-item {
