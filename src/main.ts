@@ -249,10 +249,11 @@ function render(): void {
   }
 
   const totalSubAmount = md.subscriptions.reduce((s, sub) => s + sub.amount, 0);
-  const totalSpent = totalExpenses + totalSubAmount;
-  const remaining = (md.budget || 0) - totalSpent;
-  const pct = md.budget > 0 ? Math.max(0, Math.min(100, (remaining / md.budget) * 100)) : 100;
+  const dailyExpBudget = Math.max(0, (md.budget || 0) - totalSubAmount);
+  const remaining = dailyExpBudget - totalExpenses;
+  const pct = dailyExpBudget > 0 ? Math.max(0, Math.min(100, (remaining / dailyExpBudget) * 100)) : 100;
 
+  el('dailyExpBudget').textContent = fmt(dailyExpBudget);
   el('totalSpent').textContent = fmt(totalExpenses);
   el('totalSubs').textContent = fmt(totalSubAmount);
 
