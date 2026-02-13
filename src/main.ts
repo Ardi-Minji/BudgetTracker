@@ -348,13 +348,22 @@ function renderSubscriptions(): void {
   }
 
   list.innerHTML = md.subscriptions.map((s, i) => `
-    <div class="sub-item">
+    <div class="sub-item ${s.paid ? 'paid' : ''}">
+      <input type="checkbox" class="sub-check" data-idx="${i}" ${s.paid ? 'checked' : ''}>
       <div class="info">${escHtml(s.name)}<small>Due: Day ${s.day}</small></div>
       <span class="amount">${fmt(s.amount)}</span>
       <button class="edit-btn" data-idx="${i}">&#9998;</button>
       <button class="del-btn" data-idx="${i}">&times;</button>
     </div>
   `).join('');
+
+  list.querySelectorAll<HTMLInputElement>('.sub-check').forEach(cb => {
+    cb.addEventListener('change', () => {
+      const idx = parseInt(cb.dataset.idx!);
+      md.subscriptions[idx].paid = cb.checked;
+      save(); renderSubscriptions();
+    });
+  });
 
   list.querySelectorAll<HTMLButtonElement>('.edit-btn').forEach(btn => {
     btn.addEventListener('click', async (ev) => {

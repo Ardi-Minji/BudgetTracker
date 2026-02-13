@@ -8,6 +8,7 @@ export interface Subscription {
   name: string;
   amount: number;
   day: number;
+  paid?: boolean;
 }
 
 export interface MonthData {
