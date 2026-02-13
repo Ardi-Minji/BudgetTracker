@@ -200,6 +200,7 @@ function render(): void {
 
   el('monthLabel').textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
   (el('budgetInput') as HTMLInputElement).value = md.budget ? String(md.budget) : '';
+  (el('dailyBudgetInput') as HTMLInputElement).value = md.dailyBudget ? String(md.dailyBudget) : '';
 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -249,11 +250,10 @@ function render(): void {
   }
 
   const totalSubAmount = md.subscriptions.reduce((s, sub) => s + sub.amount, 0);
-  const dailyExpBudget = Math.max(0, (md.budget || 0) - totalSubAmount);
+  const dailyExpBudget = md.dailyBudget || 0;
   const remaining = dailyExpBudget - totalExpenses;
   const pct = dailyExpBudget > 0 ? Math.max(0, Math.min(100, (remaining / dailyExpBudget) * 100)) : 100;
 
-  el('dailyExpBudget').textContent = fmt(dailyExpBudget);
   el('totalSpent').textContent = fmt(totalExpenses);
   el('totalSubs').textContent = fmt(totalSubAmount);
 
@@ -814,6 +814,12 @@ function slideCalendar(direction: 'left' | 'right', then: () => void): void {
 el('budgetInput').addEventListener('input', () => {
   const md = getMonthData(currentYear, currentMonth);
   md.budget = parseFloat((el('budgetInput') as HTMLInputElement).value) || 0;
+  save(); render();
+});
+
+el('dailyBudgetInput').addEventListener('input', () => {
+  const md = getMonthData(currentYear, currentMonth);
+  md.dailyBudget = parseFloat((el('dailyBudgetInput') as HTMLInputElement).value) || 0;
   save(); render();
 });
 

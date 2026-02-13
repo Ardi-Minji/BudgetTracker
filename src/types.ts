@@ -13,6 +13,7 @@ export interface Subscription {
 
 export interface MonthData {
   budget: number;
+  dailyBudget?: number;
   subscriptions: Subscription[];
   expenses: Record<string, Expense[]>;
 }
