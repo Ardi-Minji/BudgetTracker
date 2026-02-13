@@ -130,6 +130,16 @@
     background: var(--bg-surface); border-radius: 12px; padding: 18px;
     border: 1px solid var(--border); transition: background .3s, border-color .3s;
   }
+  .card.budget-pair {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .budget-half { flex: 1; }
+  .budget-half label { display: block; }
+  .budget-divider {
+    width: 1px; align-self: stretch;
+    background: var(--border);
+  }
 
   .card label { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); display: block; margin-bottom: 6px; }
   .card .value { font-size: 1.5rem; font-weight: 700; }
@@ -690,18 +700,21 @@
 
   <!-- Summary Cards -->
   <div class="summary">
-    <div class="card">
-      <label>Monthly Budget</label>
-      <div class="budget-input-group">
-        <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
-        <input type="number" id="budgetInput" min="0" step="0.01" placeholder="0.00">
+    <div class="card budget-pair">
+      <div class="budget-half">
+        <label>Monthly Budget</label>
+        <div class="budget-input-group">
+          <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
+          <input type="number" id="budgetInput" min="0" step="0.01" placeholder="0.00">
+        </div>
       </div>
-    </div>
-    <div class="card">
-      <label>Daily Expense Budget</label>
-      <div class="budget-input-group">
-        <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
-        <input type="number" id="dailyBudgetInput" min="0" step="0.01" placeholder="0.00">
+      <div class="budget-divider"></div>
+      <div class="budget-half">
+        <label>Daily Expense Budget</label>
+        <div class="budget-input-group">
+          <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
+          <input type="number" id="dailyBudgetInput" min="0" step="0.01" placeholder="0.00">
+        </div>
       </div>
     </div>
     <div class="card">
