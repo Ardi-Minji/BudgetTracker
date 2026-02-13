@@ -135,7 +135,7 @@
   .card .value { font-size: 1.5rem; font-weight: 700; }
   .card .value.green { color: var(--success); }
   .card .value.red { color: var(--danger); }
-  .card .value.blue { color: var(--accent); }
+  .card .value.blue, .card .value.accent { color: var(--accent); }
   .card .value.amber { color: var(--warning); }
   .card .value.purple { color: var(--purple); }
 
@@ -698,7 +698,12 @@
       </div>
     </div>
     <div class="card">
-      <label>Total Spent</label>
+      <label>Daily Expense Budget</label>
+      <div class="value accent" id="dailyExpBudget">&#8369;0.00</div>
+      <small style="color:var(--text-tertiary);font-size:.7rem;">Budget − Subscriptions</small>
+    </div>
+    <div class="card">
+      <label>Daily Expenses</label>
       <div class="value red" id="totalSpent">&#8369;0.00</div>
     </div>
     <div class="card">
