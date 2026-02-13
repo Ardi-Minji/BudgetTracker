@@ -134,7 +134,7 @@
     grid-column: 1 / -1;
     display: flex; align-items: center; gap: 16px;
   }
-  .budget-half { flex: 1; }
+  .budget-half { flex: 1; min-width: 0; }
   .budget-half label { display: block; }
   .budget-divider {
     width: 1px; align-self: stretch;
@@ -153,7 +153,7 @@
   .budget-input-group input {
     background: var(--bg-primary); border: 1px solid var(--border-hover);
     padding: 6px 10px; border-radius: 6px; font-size: 1.3rem; font-weight: 700;
-    width: 160px; color: var(--accent); transition: background .3s, border-color .3s;
+    width: 100%; min-width: 0; color: var(--accent); transition: background .3s, border-color .3s;
   }
   .budget-input-group input:focus { outline: none; border-color: var(--accent); }
 
@@ -491,6 +491,8 @@
     header { justify-content: center; text-align: center; }
     h1 { width: 100%; }
     .month-nav { width: 100%; justify-content: center; }
+    .card.budget-pair { flex-direction: column; align-items: stretch; }
+    .budget-divider { width: auto; height: 1px; align-self: auto; }
     .day { min-height: 60px; padding: 4px 3px; }
     .day .day-num { font-size: .7rem; }
     .day .day-total { font-size: .6rem; margin-top: 2px; }
