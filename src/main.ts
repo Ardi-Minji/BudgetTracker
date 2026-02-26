@@ -23,6 +23,7 @@ function updateThemeToggleIcon(theme: string): void {
   const btn = document.getElementById('themeToggle');
   if (btn) {
     btn.innerHTML = theme === 'dark' ? '&#9790;' : '&#9728;';
+    btn.setAttribute('aria-pressed', String(theme === 'dark'));
   }
 }
 
@@ -64,14 +65,44 @@ function catBadge(cat?: string): string {
   return `<span class="cat-badge ${escHtml(cat)}">${escHtml(cat)}</span>`;
 }
 
+// ── Focus Trap Utility ──────────────────────────────────────────────
+function trapFocus(container: HTMLElement): () => void {
+  const previousFocus = document.activeElement as HTMLElement | null;
+  const focusable = container.querySelectorAll<HTMLElement>(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (first) first.focus();
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      container.click(); // triggers overlay click-to-close
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last?.focus(); }
+    } else {
+      if (document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    }
+  }
+
+  container.addEventListener('keydown', handleKeydown);
+  return () => {
+    container.removeEventListener('keydown', handleKeydown);
+    if (previousFocus) previousFocus.focus();
+  };
+}
+
 // ── Confirm Dialog ──────────────────────────────────────────────────
 function confirmAction(message: string): Promise<boolean> {
   return new Promise((resolve) => {
     const container = el('dialogContainer');
     container.innerHTML = `
-      <div class="confirm-overlay">
+      <div class="confirm-overlay" role="dialog" aria-modal="true" aria-labelledby="confirmMsg">
         <div class="confirm-box">
-          <p>${escHtml(message)}</p>
+          <p id="confirmMsg">${escHtml(message)}</p>
           <div class="confirm-actions">
             <button class="btn btn-secondary" id="confirmNo">Cancel</button>
             <button class="btn btn-danger" id="confirmYes">Delete</button>
@@ -79,8 +110,12 @@ function confirmAction(message: string): Promise<boolean> {
         </div>
       </div>
     `;
-    el('confirmYes').addEventListener('click', () => { container.innerHTML = ''; resolve(true); });
-    el('confirmNo').addEventListener('click', () => { container.innerHTML = ''; resolve(false); });
+    const overlay = container.querySelector('.confirm-overlay') as HTMLElement;
+    const releaseFocus = trapFocus(overlay);
+    const close = (result: boolean) => { releaseFocus(); container.innerHTML = ''; resolve(result); };
+    el('confirmYes').addEventListener('click', () => close(true));
+    el('confirmNo').addEventListener('click', () => close(false));
+    overlay.addEventListener('click', (e) => { if (e.target === e.currentTarget) close(false); });
   });
 }
 
@@ -94,9 +129,9 @@ function editExpenseModal(expense: { name: string; amount: number; category?: st
       )).join('');
 
     container.innerHTML = `
-      <div class="edit-overlay">
+      <div class="edit-overlay" role="dialog" aria-modal="true" aria-labelledby="editExpenseTitle">
         <div class="edit-box">
-          <h3>Edit Expense</h3>
+          <h3 id="editExpenseTitle">Edit Expense</h3>
           <div class="form-row">
             <input type="text" id="editName" value="${escHtml(expense.name)}">
           </div>
@@ -113,14 +148,17 @@ function editExpenseModal(expense: { name: string; amount: number; category?: st
         </div>
       </div>
     `;
-    el('editCancel').addEventListener('click', () => { container.innerHTML = ''; resolve(null); });
+    const overlay = container.querySelector('.edit-overlay') as HTMLElement;
+    const releaseFocus = trapFocus(overlay);
+    const close = (result: { name: string; amount: number; category: string } | null) => { releaseFocus(); container.innerHTML = ''; resolve(result); };
+    el('editCancel').addEventListener('click', () => close(null));
+    overlay.addEventListener('click', (e) => { if (e.target === e.currentTarget) close(null); });
     el('editSave').addEventListener('click', () => {
       const name = (el('editName') as HTMLInputElement).value.trim();
       const amount = parseFloat((el('editAmount') as HTMLInputElement).value);
       const category = (el('editCategory') as HTMLSelectElement).value;
       if (!name || !amount || amount <= 0) return;
-      container.innerHTML = '';
-      resolve({ name, amount, category });
+      close({ name, amount, category });
     });
   });
 }
@@ -129,9 +167,9 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
   return new Promise((resolve) => {
     const container = el('dialogContainer');
     container.innerHTML = `
-      <div class="edit-overlay">
+      <div class="edit-overlay" role="dialog" aria-modal="true" aria-labelledby="editSubTitle">
         <div class="edit-box">
-          <h3>Edit Subscription</h3>
+          <h3 id="editSubTitle">Edit Subscription</h3>
           <div class="form-row">
             <input type="text" id="editSubName" value="${escHtml(sub.name)}" placeholder="Name">
           </div>
@@ -149,18 +187,18 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
         </div>
       </div>
     `;
-    el('editSubCancel').addEventListener('click', () => { container.innerHTML = ''; resolve(null); });
+    const overlay = container.querySelector('.edit-overlay') as HTMLElement;
+    const releaseFocus = trapFocus(overlay);
+    const close = (result: { name: string; amount: number; day: number } | null) => { releaseFocus(); container.innerHTML = ''; resolve(result); };
+    el('editSubCancel').addEventListener('click', () => close(null));
+    overlay.addEventListener('click', (e) => { if (e.target === e.currentTarget) close(null); });
     el('editSubSave').addEventListener('click', () => {
       const name = (el('editSubName') as HTMLInputElement).value.trim();
       const amount = parseFloat((el('editSubAmount') as HTMLInputElement).value);
       const dateVal = (el('editSubDay') as HTMLInputElement).value;
       const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : sub.day;
       if (!name || !amount || amount <= 0 || !day || day < 1 || day > 31) return;
-      container.innerHTML = '';
-      resolve({ name, amount, day });
-    });
-    container.querySelector('.edit-overlay')!.addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) { container.innerHTML = ''; resolve(null); }
+      close({ name, amount, day });
     });
   });
 }
@@ -238,8 +276,14 @@ function render(): void {
     }
 
     div.innerHTML = html;
+    div.setAttribute('tabindex', '0');
+    div.setAttribute('role', 'button');
+    div.setAttribute('aria-label', `${MONTH_NAMES[currentMonth]} ${d}${dayTotal > 0 ? ', expenses: ' + fmtShort(dayTotal) : ''}`);
     const dayNum = d;
     div.addEventListener('click', () => { selectedDay = dayNum; render(); });
+    div.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectedDay = dayNum; render(); }
+    });
     grid.appendChild(div);
   }
 
@@ -253,6 +297,19 @@ function render(): void {
   const dailyExpBudget = md.dailyBudget || 0;
   const remaining = dailyExpBudget - totalExpenses;
   const pct = dailyExpBudget > 0 ? Math.max(0, Math.min(100, (remaining / dailyExpBudget) * 100)) : 100;
+
+  // Budget consistency warning (#006)
+  const warningEl = el('budgetWarning');
+  if (md.budget > 0 && dailyExpBudget > 0) {
+    const totalDaily = dailyExpBudget * daysInMonth;
+    if (totalDaily > md.budget) {
+      warningEl.textContent = `Daily budget \u00D7 ${daysInMonth} days = ${fmt(totalDaily)} exceeds monthly budget of ${fmt(md.budget)}`;
+    } else {
+      warningEl.textContent = '';
+    }
+  } else {
+    warningEl.textContent = '';
+  }
 
   el('totalSpent').textContent = fmt(totalExpenses);
   el('totalSubs').textContent = fmt(totalSubAmount);
@@ -521,9 +578,9 @@ function showMonthDetail(year: number, monthIdx: number): void {
 
   const container = el('dialogContainer');
   container.innerHTML = `
-    <div class="detail-overlay">
+    <div class="detail-overlay" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
       <div class="detail-box">
-        <h3>${MONTH_NAMES[monthIdx]} ${year}</h3>
+        <h3 id="detailTitle">${MONTH_NAMES[monthIdx]} ${year}</h3>
         <div class="detail-status">${statusBadge(hasData, remaining)}</div>
         <div class="detail-stats">
           <div><div class="ds-label">Budget</div><div class="ds-val" style="color:var(--accent);">${md.budget > 0 ? fmt(md.budget) : '-'}</div></div>
@@ -542,18 +599,19 @@ function showMonthDetail(year: number, monthIdx: number): void {
     </div>
   `;
 
-  el('detailClose').addEventListener('click', () => { container.innerHTML = ''; });
+  const detailOverlay = container.querySelector('.detail-overlay') as HTMLElement;
+  const releaseFocus = trapFocus(detailOverlay);
+  const closeDetail = () => { releaseFocus(); container.innerHTML = ''; };
+  el('detailClose').addEventListener('click', closeDetail);
   el('detailGoTo').addEventListener('click', () => {
-    container.innerHTML = '';
+    closeDetail();
     currentYear = year;
     currentMonth = monthIdx;
     selectedDay = null;
     render();
   });
-
-  // Close on overlay click
-  container.querySelector('.detail-overlay')!.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) container.innerHTML = '';
+  detailOverlay.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeDetail();
   });
 }
 
@@ -824,14 +882,17 @@ el('dailyBudgetInput').addEventListener('input', () => {
 });
 
 el('addExpenseBtn').addEventListener('click', () => {
-  if (!selectedDay) { alert('Please select a day on the calendar first.'); return; }
+  const errEl = el('expenseError');
+  errEl.textContent = '';
+  if (!selectedDay) { errEl.textContent = 'Please select a day on the calendar first.'; return; }
   const nameInput = el('expenseName') as HTMLInputElement;
   const amountInput = el('expenseAmount') as HTMLInputElement;
   const catSelect = el('expenseCategory') as HTMLSelectElement;
   const name = nameInput.value.trim();
   const amount = parseFloat(amountInput.value);
   const category = catSelect.value;
-  if (!name || !amount || amount <= 0) { alert('Enter a description and valid amount.'); return; }
+  if (!name) { errEl.textContent = 'Please enter a description.'; nameInput.focus(); return; }
+  if (!amount || amount <= 0) { errEl.textContent = 'Please enter a valid amount greater than zero.'; amountInput.focus(); return; }
 
   const md = getMonthData(currentYear, currentMonth);
   const dk = dayKey(currentYear, currentMonth, selectedDay);
@@ -852,7 +913,7 @@ el('addSubBtn').addEventListener('click', () => {
   const amount = parseFloat(amountInput.value);
   const dateVal = dayInput.value;
   const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : 0;
-  if (!name || !amount || amount <= 0 || !day) { alert('Enter a name, valid amount, and due date.'); return; }
+  if (!name || !amount || amount <= 0 || !day) { el('expenseError').textContent = 'Enter a name, valid amount, and due date for the subscription.'; return; }
 
   const md = getMonthData(currentYear, currentMonth);
   md.subscriptions.push({ name, amount, day });
@@ -947,6 +1008,15 @@ el('authMode').addEventListener('change', () => {
 
 el('authPassword').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') (el('authSubmit') as HTMLButtonElement).click();
+});
+
+el('passwordToggle').addEventListener('click', () => {
+  const input = el('authPassword') as HTMLInputElement;
+  const btn = el('passwordToggle');
+  const showing = input.type === 'text';
+  input.type = showing ? 'password' : 'text';
+  btn.innerHTML = showing ? '&#128065;' : '&#128064;';
+  btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
 });
 
 el('googleBtn').addEventListener('click', async () => {
