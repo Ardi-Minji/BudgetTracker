@@ -200,7 +200,7 @@ function render(): void {
 
   el('monthLabel').textContent = `${MONTH_NAMES[currentMonth]} ${currentYear}`;
   (el('budgetInput') as HTMLInputElement).value = md.budget ? String(md.budget) : '';
-  (el('dailyBudgetInput') as HTMLInputElement).value = md.dailyBudget ? String(md.dailyBudget) : '';
+  (el('dailyBudgetInput') as HTMLSelectElement).value = md.dailyBudget ? String(md.dailyBudget) : '0';
 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -817,9 +817,9 @@ el('budgetInput').addEventListener('input', () => {
   save(); render();
 });
 
-el('dailyBudgetInput').addEventListener('input', () => {
+el('dailyBudgetInput').addEventListener('change', () => {
   const md = getMonthData(currentYear, currentMonth);
-  md.dailyBudget = parseFloat((el('dailyBudgetInput') as HTMLInputElement).value) || 0;
+  md.dailyBudget = parseFloat((el('dailyBudgetInput') as HTMLSelectElement).value) || 0;
   save(); render();
 });
 

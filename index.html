@@ -155,7 +155,13 @@
     padding: 6px 10px; border-radius: 6px; font-size: 1.3rem; font-weight: 700;
     width: 160px; color: var(--accent); transition: background .3s, border-color .3s;
   }
-  .budget-input-group input:focus { outline: none; border-color: var(--accent); }
+  .budget-input-group input:focus, .budget-input-group select:focus { outline: none; border-color: var(--accent); }
+  .budget-input-group select {
+    background: var(--bg-primary); border: 1px solid var(--border-hover);
+    padding: 6px 10px; border-radius: 6px; font-size: 1.3rem; font-weight: 700;
+    width: 160px; color: var(--accent); transition: background .3s, border-color .3s;
+    cursor: pointer; appearance: auto;
+  }
 
   /* Layout: Calendar + Sidebar */
   .main-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
@@ -713,7 +719,14 @@
         <label>Daily Expense Budget</label>
         <div class="budget-input-group">
           <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
-          <input type="number" id="dailyBudgetInput" min="0" step="0.01" placeholder="0.00">
+          <select id="dailyBudgetInput">
+            <option value="0">Select</option>
+            <option value="10000">10,000</option>
+            <option value="12000">12,000</option>
+            <option value="13000">13,000</option>
+            <option value="14000">14,000</option>
+            <option value="15000">15,000</option>
+          </select>
         </div>
       </div>
     </div>
