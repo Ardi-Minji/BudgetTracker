@@ -23,7 +23,7 @@
     --border-hover: #475569;
     --text-primary: #e2e8f0;
     --text-secondary: #94a3b8;
-    --text-tertiary: #7d8da1;
+    --text-tertiary: #64748b;
     --text-heading: #cbd5e1;
     --accent: #38bdf8;
     --success: #4ade80;
@@ -37,7 +37,7 @@
     --status-over-bg: #7f1d1d;
     --status-over-text: #f87171;
     --status-empty-bg: #1e293b;
-    --status-empty-text: #7d8da1;
+    --status-empty-text: #64748b;
     --google-btn-bg: #fff;
     --google-btn-text: #333;
     --google-btn-hover: #f1f5f9;
@@ -134,7 +134,7 @@
     grid-column: 1 / -1;
     display: flex; align-items: center; gap: 16px;
   }
-  .budget-half { flex: 1; min-width: 0; }
+  .budget-half { flex: 1; }
   .budget-half label { display: block; }
   .budget-divider {
     width: 1px; align-self: stretch;
@@ -153,10 +153,9 @@
   .budget-input-group input {
     background: var(--bg-primary); border: 1px solid var(--border-hover);
     padding: 6px 10px; border-radius: 6px; font-size: 1.3rem; font-weight: 700;
-    width: 100%; min-width: 0; color: var(--accent); transition: background .3s, border-color .3s;
+    width: 160px; color: var(--accent); transition: background .3s, border-color .3s;
   }
   .budget-input-group input:focus { outline: none; border-color: var(--accent); }
-  .budget-warning { color: var(--warning); font-size: .75rem; margin-top: 6px; }
 
   /* Layout: Calendar + Sidebar */
   .main-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
@@ -187,9 +186,6 @@
   .day.today { border-color: var(--accent); }
   .day.selected { border-color: var(--purple); }
   .day.empty { background: transparent; cursor: default; border: none; }
-  .day:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .day:focus:not(:focus-visible) { outline: none; }
-  .day.empty:focus { outline: none; }
 
   .day .day-num { font-size: .8rem; font-weight: 600; color: var(--text-secondary); }
   .day .day-total { font-size: .85rem; font-weight: 700; color: var(--danger); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -243,8 +239,7 @@
 
   /* Edit/action buttons on expense items */
   .expense-item .edit-btn, .sub-item .edit-btn {
-    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: .85rem;
-    min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: .85rem; padding: 0 4px;
   }
   .expense-item .edit-btn:hover, .sub-item .edit-btn:hover { color: var(--accent); }
 
@@ -323,8 +318,7 @@
   .expense-item .name { font-size: .85rem; }
   .expense-item .amount { font-weight: 600; color: var(--danger); font-size: .85rem; }
   .expense-item .del-btn {
-    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1rem;
-    min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1rem; padding: 0 4px;
   }
   .expense-item .del-btn:hover { color: var(--danger); }
 
@@ -338,12 +332,10 @@
   .sub-item .info small { color: var(--text-tertiary); display: block; font-size: .75rem; }
   .sub-item .amount { font-weight: 600; color: var(--purple); font-size: .85rem; }
   .sub-check {
-    width: 22px; height: 22px; accent-color: var(--success); cursor: pointer; flex-shrink: 0;
-    min-width: 44px; min-height: 44px;
+    width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; flex-shrink: 0;
   }
   .sub-item .del-btn {
-    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1rem;
-    min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1rem; padding: 0 4px;
   }
   .sub-item .del-btn:hover { color: var(--danger); }
 
@@ -353,8 +345,6 @@
     background: var(--border); border-radius: 999px; height: 10px; overflow: hidden; margin-top: 6px;
   }
   .progress-bar { height: 100%; border-radius: 999px; transition: width .4s; }
-
-  .expense-error { color: var(--danger); font-size: .8rem; min-height: 0; margin-top: 6px; }
 
   .empty-msg { color: var(--border-hover); font-size: .8rem; font-style: italic; padding: 8px 0; }
 
@@ -501,8 +491,6 @@
     header { justify-content: center; text-align: center; }
     h1 { width: 100%; }
     .month-nav { width: 100%; justify-content: center; }
-    .card.budget-pair { flex-direction: column; align-items: stretch; }
-    .budget-divider { width: auto; height: 1px; align-self: auto; }
     .day { min-height: 60px; padding: 4px 3px; }
     .day .day-num { font-size: .7rem; }
     .day .day-total { font-size: .6rem; margin-top: 2px; }
@@ -572,17 +560,6 @@
   }
   .google-btn:hover { background: var(--google-btn-hover); }
 
-  .password-group { position: relative; }
-  .password-group input { padding-right: 44px; }
-  .password-toggle {
-    position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: var(--text-tertiary);
-    cursor: pointer; font-size: 1rem;
-    min-width: 44px; min-height: 44px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .password-toggle:hover { color: var(--text-primary); }
-
   .auth-error {
     color: var(--danger); font-size: .8rem; text-align: center;
     min-height: 20px; margin-top: 10px;
@@ -615,7 +592,7 @@
   /* Loading Splash Screen */
   .loading-screen {
     position: fixed; inset: 0; z-index: 9999;
-    background: var(--bg-primary);
+    background: #d98a7e;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 16px;
     transition: opacity .4s ease;
@@ -633,12 +610,12 @@
 
   .loading-bar-track {
     width: 200px; max-width: 60vw; height: 28px;
-    background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px;
+    background: #fff; border-radius: 14px;
     overflow: hidden; position: relative;
   }
   .loading-bar-fill {
     height: 100%; width: 30%;
-    background: linear-gradient(90deg, var(--accent), var(--btn-primary));
+    background: linear-gradient(90deg, #f5c542, #f0a830);
     border-radius: 14px;
     animation: barSlide 1.5s ease-in-out infinite;
   }
@@ -648,7 +625,7 @@
   }
 
   .loading-text {
-    font-size: .9rem; font-weight: 700; color: var(--text-primary);
+    font-size: .9rem; font-weight: 700; color: #fff;
     letter-spacing: 3px; text-transform: uppercase;
   }
   .loading-dots::after {
@@ -688,9 +665,8 @@
     <div class="form-row">
       <input type="email" id="authEmail" placeholder="Email address" autocomplete="email">
     </div>
-    <div class="form-row password-group">
+    <div class="form-row">
       <input type="password" id="authPassword" placeholder="Password (min 6 chars)" autocomplete="current-password">
-      <button type="button" class="password-toggle" id="passwordToggle" aria-label="Show password">&#128065;</button>
     </div>
     <button class="btn btn-primary" id="authSubmit">Log In</button>
     <div class="auth-divider"><span>or</span></div>
@@ -708,7 +684,7 @@
   <div class="user-bar" id="userBar">
     <span class="user-info">Signed in as <strong id="userEmail"></strong></span>
     <div class="user-bar-actions">
-      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle dark theme" aria-pressed="true">&#9790;</button>
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light and dark theme">&#9790;</button>
       <button class="logout-btn" id="logoutBtn">Log Out</button>
     </div>
   </div>
@@ -740,7 +716,6 @@
           <input type="number" id="dailyBudgetInput" min="0" step="0.01" placeholder="0.00">
         </div>
       </div>
-      <div class="budget-warning" id="budgetWarning" role="alert" aria-live="polite"></div>
     </div>
     <div class="card">
       <label>Daily Expenses</label>
@@ -780,8 +755,8 @@
         <h3>Add Daily Expense</h3>
         <div class="selected-date-label" id="selectedDateLabel">Select a day</div>
         <div class="form-row">
-          <input type="text" id="expenseName" placeholder="Description" required>
-          <input type="number" id="expenseAmount" placeholder="Amount" min="0.01" step="0.01" required style="max-width:100px;">
+          <input type="text" id="expenseName" placeholder="Description">
+          <input type="number" id="expenseAmount" placeholder="Amount" min="0" step="0.01" style="max-width:100px;">
         </div>
         <div class="form-row">
           <select id="expenseCategory">
@@ -796,7 +771,6 @@
           </select>
         </div>
         <button class="btn btn-primary" id="addExpenseBtn" style="width:100%;">Add Expense</button>
-        <div class="expense-error" id="expenseError" role="alert" aria-live="polite"></div>
         <div class="expense-list" id="expenseList" style="margin-top:12px;"></div>
       </div>
 
