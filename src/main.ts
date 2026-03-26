@@ -1,7 +1,11 @@
-import type { BudgetStore, MonthData, MonthSummary, YearSummary } from './types';
+import type { BudgetStore, Expense, Subscription, MonthData, MonthSummary, YearSummary } from './types';
 import { initAuth, setAuthCallback, signIn, signUp, signInWithGoogle, signOut } from './auth';
 import { loadData, saveData, setUserId, syncIfPending } from './store';
 import type { User } from '@supabase/supabase-js';
+
+function genId(): string {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────
 const el = (id: string): HTMLElement => document.getElementById(id)!;
@@ -64,6 +68,93 @@ function catBadge(cat?: string): string {
   return `<span class="cat-badge ${escHtml(cat)}">${escHtml(cat)}</span>`;
 }
 
+// ── Recurring Expense Generation ─────────────────────────────────────
+function generateRecurring(
+  startYear: number, startMonth: number, startDay: number,
+  expense: Expense
+): void {
+  const rid = expense.repeatId || genId();
+  const base: Expense = { ...expense, repeatId: rid };
+
+  // Generate for the next 3 months from the start date
+  const startDate = new Date(startYear, startMonth, startDay);
+  const endDate = new Date(startYear, startMonth + 4, 0); // end of month+3
+
+  if (base.repeat === 'daily') {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + 1); // skip the original day
+    while (d <= endDate) {
+      const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+      const md = getMonthData(y, m);
+      const dk = dayKey(y, m, day);
+      if (!md.expenses[dk]) md.expenses[dk] = [];
+      md.expenses[dk].push({ ...base });
+      d.setDate(d.getDate() + 1);
+    }
+  } else if (base.repeat === 'weekly') {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + 7);
+    while (d <= endDate) {
+      const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+      const md = getMonthData(y, m);
+      const dk = dayKey(y, m, day);
+      if (!md.expenses[dk]) md.expenses[dk] = [];
+      md.expenses[dk].push({ ...base });
+      d.setDate(d.getDate() + 7);
+    }
+  } else if (base.repeat === 'monthly') {
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(startYear, startMonth + i, 1);
+      const maxDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const day = Math.min(startDay, maxDay);
+      const y = d.getFullYear(), m = d.getMonth();
+      const md = getMonthData(y, m);
+      const dk = dayKey(y, m, day);
+      if (!md.expenses[dk]) md.expenses[dk] = [];
+      md.expenses[dk].push({ ...base });
+    }
+  }
+}
+
+function generateRecurringSub(
+  startYear: number, startMonth: number,
+  sub: Subscription
+): void {
+  const rid = sub.repeatId || genId();
+  const base: Subscription = { ...sub, repeatId: rid };
+
+  if (base.repeat === 'monthly') {
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(startYear, startMonth + i, 1);
+      const y = d.getFullYear(), m = d.getMonth();
+      const maxDay = new Date(y, m + 1, 0).getDate();
+      const md = getMonthData(y, m);
+      md.subscriptions.push({ ...base, day: Math.min(base.day, maxDay), paid: false });
+    }
+  } else if (base.repeat === 'weekly' || base.repeat === 'daily') {
+    // For subscriptions, weekly/daily still creates one entry per future month
+    // since subscriptions are month-level items (not day-level expenses)
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(startYear, startMonth + i, 1);
+      const y = d.getFullYear(), m = d.getMonth();
+      const maxDay = new Date(y, m + 1, 0).getDate();
+      const md = getMonthData(y, m);
+      md.subscriptions.push({ ...base, day: Math.min(base.day, maxDay), paid: false });
+    }
+  }
+}
+
+function deleteRecurringSubFromMonth(repeatId: string, fromYear: number, fromMonth: number): void {
+  for (const mk of Object.keys(data)) {
+    const [yStr, mStr] = mk.split('-');
+    const y = parseInt(yStr), m = parseInt(mStr) - 1;
+    if (y < fromYear || (y === fromYear && m < fromMonth)) continue;
+    const md = data[mk];
+    if (!md.subscriptions) continue;
+    md.subscriptions = md.subscriptions.filter(s => s.repeatId !== repeatId);
+  }
+}
+
 // ── Confirm Dialog ──────────────────────────────────────────────────
 function confirmAction(message: string): Promise<boolean> {
   return new Promise((resolve) => {
@@ -85,13 +176,18 @@ function confirmAction(message: string): Promise<boolean> {
 }
 
 // ── Edit Expense Modal ──────────────────────────────────────────────
-function editExpenseModal(expense: { name: string; amount: number; category?: string }): Promise<{ name: string; amount: number; category: string } | null> {
+function editExpenseModal(expense: Expense): Promise<Expense | null> {
   return new Promise((resolve) => {
     const container = el('dialogContainer');
     const catOptions = ['<option value="">No Category</option>']
       .concat(CATEGORIES.map(c =>
         `<option value="${c}" ${expense.category === c ? 'selected' : ''}>${c.charAt(0).toUpperCase() + c.slice(1)}</option>`
       )).join('');
+
+    const repeatOptions = [
+      { v: '', l: 'Repeat: None' }, { v: 'daily', l: 'Repeat: Daily' },
+      { v: 'weekly', l: 'Repeat: Weekly' }, { v: 'monthly', l: 'Repeat: Monthly' },
+    ].map(o => `<option value="${o.v}" ${(expense.repeat || '') === o.v ? 'selected' : ''}>${o.l}</option>`).join('');
 
     container.innerHTML = `
       <div class="edit-overlay">
@@ -106,9 +202,12 @@ function editExpenseModal(expense: { name: string; amount: number; category?: st
           <div class="form-row">
             <select id="editCategory">${catOptions}</select>
           </div>
+          <div class="form-row">
+            <select id="editRepeat" style="width:100%;min-height:48px;">${repeatOptions}</select>
+          </div>
           <div class="edit-actions">
-            <button class="btn btn-secondary" id="editCancel">Cancel</button>
-            <button class="btn btn-primary" id="editSave">Save</button>
+            <button class="btn btn-secondary" id="editCancel" style="min-height:48px;">Cancel</button>
+            <button class="btn btn-primary" id="editSave" style="min-height:48px;">Save</button>
           </div>
         </div>
       </div>
@@ -118,16 +217,29 @@ function editExpenseModal(expense: { name: string; amount: number; category?: st
       const name = (el('editName') as HTMLInputElement).value.trim();
       const amount = parseFloat((el('editAmount') as HTMLInputElement).value);
       const category = (el('editCategory') as HTMLSelectElement).value;
+      const repeat = (el('editRepeat') as HTMLSelectElement).value as Expense['repeat'] | '';
       if (!name || !amount || amount <= 0) return;
       container.innerHTML = '';
-      resolve({ name, amount, category });
+      resolve({
+        name, amount,
+        ...(category ? { category } : {}),
+        ...(repeat ? { repeat, repeatId: expense.repeatId || genId() } : {}),
+      });
     });
   });
 }
 
-function editSubscriptionModal(sub: { name: string; amount: number; day: number }): Promise<{ name: string; amount: number; day: number } | null> {
+function editSubscriptionModal(sub: Subscription): Promise<Subscription | null> {
   return new Promise((resolve) => {
     const container = el('dialogContainer');
+    const mm = String(currentMonth + 1).padStart(2, '0');
+    const maxDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    const repeatOptions = [
+      { v: '', l: 'Repeat: None' }, { v: 'daily', l: 'Repeat: Daily' },
+      { v: 'weekly', l: 'Repeat: Weekly' }, { v: 'monthly', l: 'Repeat: Monthly' },
+    ].map(o => `<option value="${o.v}" ${(sub.repeat || '') === o.v ? 'selected' : ''}>${o.l}</option>`).join('');
+
     container.innerHTML = `
       <div class="edit-overlay">
         <div class="edit-box">
@@ -140,11 +252,14 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
           </div>
           <div class="form-row">
             <label style="font-size:.8rem;color:var(--text-secondary);margin-bottom:4px;display:block;">Due Day</label>
-            <input type="date" id="editSubDay" value="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(sub.day).padStart(2, '0')}" min="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01" max="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(new Date(currentYear, currentMonth + 1, 0).getDate()).padStart(2, '0')}">
+            <input type="date" id="editSubDay" value="${currentYear}-${mm}-${String(sub.day).padStart(2, '0')}" min="${currentYear}-${mm}-01" max="${currentYear}-${mm}-${String(maxDay).padStart(2, '0')}">
+          </div>
+          <div class="form-row">
+            <select id="editSubRepeat" style="width:100%;min-height:48px;">${repeatOptions}</select>
           </div>
           <div class="edit-actions">
-            <button class="btn btn-secondary" id="editSubCancel">Cancel</button>
-            <button class="btn btn-primary" id="editSubSave">Save</button>
+            <button class="btn btn-secondary" id="editSubCancel" style="min-height:48px;">Cancel</button>
+            <button class="btn btn-primary" id="editSubSave" style="min-height:48px;">Save</button>
           </div>
         </div>
       </div>
@@ -155,9 +270,14 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
       const amount = parseFloat((el('editSubAmount') as HTMLInputElement).value);
       const dateVal = (el('editSubDay') as HTMLInputElement).value;
       const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : sub.day;
+      const repeat = (el('editSubRepeat') as HTMLSelectElement).value as Subscription['repeat'] | '';
       if (!name || !amount || amount <= 0 || !day || day < 1 || day > 31) return;
       container.innerHTML = '';
-      resolve({ name, amount, day });
+      resolve({
+        name, amount, day,
+        ...(sub.paid ? { paid: sub.paid } : {}),
+        ...(repeat ? { repeat: repeat as Subscription['repeat'], repeatId: sub.repeatId || genId() } : {}),
+      });
     });
     container.querySelector('.edit-overlay')!.addEventListener('click', (e) => {
       if (e.target === e.currentTarget) { container.innerHTML = ''; resolve(null); }
@@ -285,6 +405,47 @@ function render(): void {
 }
 
 // ── Sidebar: Day Expenses ────────────────────────────────────────────
+// ── Recurring Delete Bottom Sheet ────────────────────────────────────
+function showRecurringDeleteSheet(name: string): Promise<'this' | 'future' | 'cancel'> {
+  return new Promise((resolve) => {
+    const container = el('dialogContainer');
+    container.innerHTML = `
+      <div class="bottom-sheet-overlay">
+        <div class="bottom-sheet">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">Delete recurring expense "${escHtml(name)}"</div>
+          <button class="sheet-btn danger" id="sheetDelThis">Delete this entry only</button>
+          <button class="sheet-btn warn" id="sheetDelFuture">Delete all future entries</button>
+          <button class="sheet-btn cancel" id="sheetCancel">Cancel</button>
+        </div>
+      </div>
+    `;
+    el('sheetDelThis').addEventListener('click', () => { container.innerHTML = ''; resolve('this'); });
+    el('sheetDelFuture').addEventListener('click', () => { container.innerHTML = ''; resolve('future'); });
+    el('sheetCancel').addEventListener('click', () => { container.innerHTML = ''; resolve('cancel'); });
+    container.querySelector('.bottom-sheet-overlay')!.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) { container.innerHTML = ''; resolve('cancel'); }
+    });
+  });
+}
+
+function deleteRecurringFromDate(repeatId: string, fromYear: number, fromMonth: number, fromDay: number): void {
+  const fromDate = new Date(fromYear, fromMonth, fromDay);
+  // Scan all months in data
+  for (const mk of Object.keys(data)) {
+    const md = data[mk];
+    if (!md.expenses) continue;
+    for (const dk of Object.keys(md.expenses)) {
+      const parts = dk.split('-');
+      const y = parseInt(parts[0]), m = parseInt(parts[1]) - 1, d = parseInt(parts[2]);
+      const entryDate = new Date(y, m, d);
+      if (entryDate < fromDate) continue;
+      md.expenses[dk] = md.expenses[dk].filter(e => e.repeatId !== repeatId);
+      if (md.expenses[dk].length === 0) delete md.expenses[dk];
+    }
+  }
+}
+
 function renderDayExpenses(): void {
   const md = getMonthData(currentYear, currentMonth);
   const label = el('selectedDateLabel');
@@ -308,12 +469,29 @@ function renderDayExpenses(): void {
 
   list.innerHTML = expenses.map((e, i) => `
     <div class="expense-item">
-      <span class="name">${catBadge(e.category)}${escHtml(e.name)}</span>
+      <span class="name">${catBadge(e.category)}${escHtml(e.name)}${e.repeat ? `<span class="repeat-badge">${escHtml(e.repeat)}</span>` : ''}</span>
       <span class="amount">-${fmt(e.amount)}</span>
+      <button class="dup-btn" data-idx="${i}" data-dk="${dk}" title="Duplicate to today">&#x2398;</button>
       <button class="edit-btn" data-idx="${i}" data-dk="${dk}" title="Edit">&#9998;</button>
       <button class="del-btn" data-idx="${i}" data-dk="${dk}">&times;</button>
     </div>
   `).join('');
+
+  list.querySelectorAll<HTMLButtonElement>('.dup-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx!);
+      const key = btn.dataset.dk!;
+      const expense = md.expenses[key][idx];
+      const today = new Date();
+      const ty = today.getFullYear(), tm = today.getMonth(), td = today.getDate();
+      const todayMd = getMonthData(ty, tm);
+      const todayDk = dayKey(ty, tm, td);
+      if (!todayMd.expenses[todayDk]) todayMd.expenses[todayDk] = [];
+      todayMd.expenses[todayDk].push({ name: expense.name, amount: expense.amount, ...(expense.category ? { category: expense.category } : {}) });
+      save(); render();
+    });
+  });
 
   list.querySelectorAll<HTMLButtonElement>('.edit-btn').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
@@ -335,10 +513,22 @@ function renderDayExpenses(): void {
       const idx = parseInt(btn.dataset.idx!);
       const key = btn.dataset.dk!;
       const expense = md.expenses[key][idx];
-      const confirmed = await confirmAction(`Delete "${expense.name}"?`);
-      if (!confirmed) return;
-      md.expenses[key].splice(idx, 1);
-      if (md.expenses[key].length === 0) delete md.expenses[key];
+
+      if (expense.repeatId) {
+        const choice = await showRecurringDeleteSheet(expense.name);
+        if (choice === 'cancel') return;
+        if (choice === 'this') {
+          md.expenses[key].splice(idx, 1);
+          if (md.expenses[key].length === 0) delete md.expenses[key];
+        } else if (choice === 'future') {
+          deleteRecurringFromDate(expense.repeatId, currentYear, currentMonth, selectedDay!);
+        }
+      } else {
+        const confirmed = await confirmAction(`Delete "${expense.name}"?`);
+        if (!confirmed) return;
+        md.expenses[key].splice(idx, 1);
+        if (md.expenses[key].length === 0) delete md.expenses[key];
+      }
       save(); render();
     });
   });
@@ -357,8 +547,9 @@ function renderSubscriptions(): void {
   list.innerHTML = md.subscriptions.map((s, i) => `
     <div class="sub-item ${s.paid ? 'paid' : ''}">
       <input type="checkbox" class="sub-check" data-idx="${i}" ${s.paid ? 'checked' : ''}>
-      <div class="info">${escHtml(s.name)}<small>Due: Day ${s.day}</small></div>
+      <div class="info">${escHtml(s.name)}${s.repeat ? `<span class="repeat-badge">${escHtml(s.repeat)}</span>` : ''}<small>Due: Day ${s.day}</small></div>
       <span class="amount">${fmt(s.amount)}</span>
+      <button class="dup-btn" data-idx="${i}" title="Duplicate to this month">&#x2398;</button>
       <button class="edit-btn" data-idx="${i}">&#9998;</button>
       <button class="del-btn" data-idx="${i}">&times;</button>
     </div>
@@ -372,6 +563,19 @@ function renderSubscriptions(): void {
     });
   });
 
+  list.querySelectorAll<HTMLButtonElement>('.dup-btn').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx!);
+      const sub = md.subscriptions[idx];
+      const today = new Date();
+      const ty = today.getFullYear(), tm = today.getMonth();
+      const todayMd = getMonthData(ty, tm);
+      todayMd.subscriptions.push({ name: sub.name, amount: sub.amount, day: sub.day, paid: false });
+      save(); render();
+    });
+  });
+
   list.querySelectorAll<HTMLButtonElement>('.edit-btn').forEach(btn => {
     btn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
@@ -379,9 +583,7 @@ function renderSubscriptions(): void {
       const sub = md.subscriptions[idx];
       const result = await editSubscriptionModal(sub);
       if (!result) return;
-      sub.name = result.name;
-      sub.amount = result.amount;
-      sub.day = result.day;
+      md.subscriptions[idx] = result;
       save(); render();
     });
   });
@@ -391,9 +593,20 @@ function renderSubscriptions(): void {
       ev.stopPropagation();
       const idx = parseInt(btn.dataset.idx!);
       const sub = md.subscriptions[idx];
-      const confirmed = await confirmAction(`Delete "${sub.name}"?`);
-      if (!confirmed) return;
-      md.subscriptions.splice(idx, 1);
+
+      if (sub.repeatId) {
+        const choice = await showRecurringDeleteSheet(sub.name);
+        if (choice === 'cancel') return;
+        if (choice === 'this') {
+          md.subscriptions.splice(idx, 1);
+        } else if (choice === 'future') {
+          deleteRecurringSubFromMonth(sub.repeatId, currentYear, currentMonth);
+        }
+      } else {
+        const confirmed = await confirmAction(`Delete "${sub.name}"?`);
+        if (!confirmed) return;
+        md.subscriptions.splice(idx, 1);
+      }
       save(); render();
     });
   });
@@ -839,14 +1052,29 @@ el('addExpenseBtn').addEventListener('click', () => {
   const category = catSelect.value;
   if (!name || !amount || amount <= 0) { alert('Enter a description and valid amount.'); return; }
 
+  const repeatSelect = el('expenseRepeat') as HTMLSelectElement;
+  const repeat = repeatSelect.value as Expense['repeat'] | '';
+
+  const expense: Expense = {
+    name, amount,
+    ...(category ? { category } : {}),
+    ...(repeat ? { repeat: repeat as Expense['repeat'], repeatId: genId() } : {}),
+  };
+
   const md = getMonthData(currentYear, currentMonth);
   const dk = dayKey(currentYear, currentMonth, selectedDay);
   if (!md.expenses[dk]) md.expenses[dk] = [];
-  md.expenses[dk].push({ name, amount, ...(category ? { category } : {}) });
+  md.expenses[dk].push(expense);
+
+  if (repeat) {
+    generateRecurring(currentYear, currentMonth, selectedDay, expense);
+  }
+
   save();
 
   nameInput.value = '';
   amountInput.value = '';
+  repeatSelect.value = '';
   render();
 });
 
@@ -860,13 +1088,27 @@ el('addSubBtn').addEventListener('click', () => {
   const day = dateVal ? new Date(dateVal + 'T00:00:00').getDate() : 0;
   if (!name || !amount || amount <= 0 || !day) { alert('Enter a name, valid amount, and due date.'); return; }
 
+  const repeatSelect = el('subRepeat') as HTMLSelectElement;
+  const repeat = repeatSelect.value as Subscription['repeat'] | '';
+
+  const sub: Subscription = {
+    name, amount, day,
+    ...(repeat ? { repeat: repeat as Subscription['repeat'], repeatId: genId() } : {}),
+  };
+
   const md = getMonthData(currentYear, currentMonth);
-  md.subscriptions.push({ name, amount, day });
+  md.subscriptions.push(sub);
+
+  if (repeat) {
+    generateRecurringSub(currentYear, currentMonth, sub);
+  }
+
   save();
 
   nameInput.value = '';
   amountInput.value = '';
   dayInput.value = '';
+  repeatSelect.value = '';
   render();
 });
 

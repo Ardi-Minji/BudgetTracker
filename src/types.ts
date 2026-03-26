@@ -2,6 +2,8 @@ export interface Expense {
   name: string;
   amount: number;
   category?: string;
+  repeat?: 'daily' | 'weekly' | 'monthly';
+  repeatId?: string;
 }
 
 export interface Subscription {
@@ -9,6 +11,8 @@ export interface Subscription {
   amount: number;
   day: number;
   paid?: boolean;
+  repeat?: 'daily' | 'weekly' | 'monthly';
+  repeatId?: string;
 }
 
 export interface MonthData {
