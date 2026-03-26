@@ -1,6 +1,6 @@
 import type { BudgetStore, MonthData, MonthSummary, YearSummary } from './types';
 import { initAuth, setAuthCallback, signIn, signUp, signInWithGoogle, signOut } from './auth';
-import { loadData, saveData, setUserId } from './store';
+import { loadData, saveData, setUserId, syncIfPending } from './store';
 import type { User } from '@supabase/supabase-js';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -983,3 +983,4 @@ initAuth();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+window.addEventListener('online', () => syncIfPending());
