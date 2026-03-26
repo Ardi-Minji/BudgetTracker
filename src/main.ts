@@ -468,12 +468,17 @@ function renderDayExpenses(): void {
   }
 
   list.innerHTML = expenses.map((e, i) => `
-    <div class="expense-item">
-      <span class="name">${catBadge(e.category)}${escHtml(e.name)}${e.repeat ? `<span class="repeat-badge">${escHtml(e.repeat)}</span>` : ''}</span>
-      <span class="amount">-${fmt(e.amount)}</span>
-      <button class="dup-btn" data-idx="${i}" data-dk="${dk}" title="Duplicate to today">&#x2398;</button>
-      <button class="edit-btn" data-idx="${i}" data-dk="${dk}" title="Edit">&#9998;</button>
-      <button class="del-btn" data-idx="${i}" data-dk="${dk}">&times;</button>
+    <div class="swipe-container" data-swipe-idx="${i}">
+      <button class="swipe-delete-bg" data-idx="${i}" data-dk="${dk}">Delete</button>
+      <div class="swipe-row">
+        <div class="expense-item">
+          <span class="name">${catBadge(e.category)}${escHtml(e.name)}${e.repeat ? `<span class="repeat-badge">${escHtml(e.repeat)}</span>` : ''}</span>
+          <span class="amount">-${fmt(e.amount)}</span>
+          <button class="dup-btn" data-idx="${i}" data-dk="${dk}" title="Duplicate to today">&#x2398;</button>
+          <button class="edit-btn" data-idx="${i}" data-dk="${dk}" title="Edit">&#9998;</button>
+          <button class="del-btn" data-idx="${i}" data-dk="${dk}">&times;</button>
+        </div>
+      </div>
     </div>
   `).join('');
 
@@ -531,6 +536,138 @@ function renderDayExpenses(): void {
       }
       save(); render();
     });
+  });
+
+  // Swipe-delete-bg tap handler
+  list.querySelectorAll<HTMLButtonElement>('.swipe-delete-bg').forEach(btn => {
+    btn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      const idx = parseInt(btn.dataset.idx!);
+      const key = btn.dataset.dk!;
+      const expense = md.expenses[key][idx];
+
+      if (expense.repeatId) {
+        const choice = await showRecurringDeleteSheet(expense.name);
+        if (choice === 'cancel') return;
+        if (choice === 'this') {
+          md.expenses[key].splice(idx, 1);
+          if (md.expenses[key].length === 0) delete md.expenses[key];
+        } else if (choice === 'future') {
+          deleteRecurringFromDate(expense.repeatId, currentYear, currentMonth, selectedDay!);
+        }
+      } else {
+        md.expenses[key].splice(idx, 1);
+        if (md.expenses[key].length === 0) delete md.expenses[key];
+      }
+      save(); render();
+    });
+  });
+
+  // Swipe-to-delete touch handling
+  setupSwipeToDelete(list);
+}
+
+let currentOpenSwipe: HTMLElement | null = null;
+
+function closeAllSwipes(): void {
+  if (currentOpenSwipe) {
+    currentOpenSwipe.classList.add('snapping');
+    currentOpenSwipe.style.transform = 'translateX(0)';
+    const el = currentOpenSwipe;
+    const onEnd = () => { el.classList.remove('snapping'); el.removeEventListener('transitionend', onEnd); };
+    el.addEventListener('transitionend', onEnd);
+    currentOpenSwipe = null;
+  }
+}
+
+function setupSwipeToDelete(list: HTMLElement): void {
+  const isTouchDevice = 'ontouchstart' in window;
+  if (!isTouchDevice) return;
+
+  // Close swipes on tap anywhere outside
+  const outsideHandler = (e: TouchEvent) => {
+    if (!currentOpenSwipe) return;
+    const container = currentOpenSwipe.closest('.swipe-container');
+    if (container && !container.contains(e.target as Node)) {
+      closeAllSwipes();
+    }
+  };
+  document.addEventListener('touchstart', outsideHandler, { passive: true });
+
+  // Store cleanup ref so re-renders don't leak listeners
+  const prevCleanup = (list as any).__swipeCleanup;
+  if (prevCleanup) prevCleanup();
+  (list as any).__swipeCleanup = () => {
+    document.removeEventListener('touchstart', outsideHandler);
+  };
+
+  list.querySelectorAll<HTMLElement>('.swipe-container').forEach(container => {
+    const row = container.querySelector<HTMLElement>('.swipe-row')!;
+    let startX = 0, startY = 0, currentX = 0;
+    let tracking = false, locked = false;
+    const DELETE_WIDTH = 75;
+
+    row.addEventListener('touchstart', (e: TouchEvent) => {
+      // Close any other open swipe first
+      if (currentOpenSwipe && currentOpenSwipe !== row) {
+        closeAllSwipes();
+      }
+      row.classList.remove('snapping');
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      currentX = 0;
+      tracking = true;
+      locked = false;
+    }, { passive: true });
+
+    row.addEventListener('touchmove', (e: TouchEvent) => {
+      if (!tracking) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+
+      if (!locked) {
+        // Determine if this is a horizontal or vertical gesture
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+          tracking = false; // vertical scroll, bail out
+          return;
+        }
+        if (Math.abs(dx) > 10) {
+          locked = true; // horizontal swipe confirmed
+        } else {
+          return;
+        }
+      }
+
+      e.preventDefault();
+
+      if (dx > 0) {
+        // Swipe right: rubber-band max 20px
+        currentX = Math.min(dx * 0.3, 20);
+      } else {
+        // Swipe left: cap at delete button width
+        currentX = Math.max(dx, -DELETE_WIDTH);
+      }
+      row.style.transform = `translateX(${currentX}px)`;
+    }, { passive: false });
+
+    row.addEventListener('touchend', () => {
+      if (!tracking && !locked) return;
+      tracking = false;
+
+      row.classList.add('snapping');
+      const onEnd = () => { row.classList.remove('snapping'); row.removeEventListener('transitionend', onEnd); };
+      row.addEventListener('transitionend', onEnd);
+
+      if (currentX <= -DELETE_WIDTH * 0.5) {
+        // Snap open
+        row.style.transform = `translateX(${-DELETE_WIDTH}px)`;
+        currentOpenSwipe = row;
+      } else {
+        // Snap closed
+        row.style.transform = 'translateX(0)';
+        if (currentOpenSwipe === row) currentOpenSwipe = null;
+      }
+    }, { passive: true });
   });
 }
 

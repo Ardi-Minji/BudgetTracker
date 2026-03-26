@@ -328,6 +328,26 @@
   }
   .expense-item .del-btn:hover { color: var(--danger); }
 
+  /* Swipe-to-delete wrapper */
+  .swipe-container {
+    position: relative; overflow: hidden;
+    border-bottom: 1px solid var(--bg-surface);
+  }
+  .swipe-container:last-child { border-bottom: none; }
+  .swipe-delete-bg {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 75px;
+    background: #ef4444; color: #fff; font-weight: 700; font-size: .9rem;
+    display: flex; align-items: center; justify-content: center;
+    -webkit-tap-highlight-color: transparent; cursor: pointer;
+    border: none;
+  }
+  .swipe-row {
+    position: relative; z-index: 1; background: var(--bg-primary);
+    will-change: transform; -webkit-tap-highlight-color: transparent;
+  }
+  .swipe-row.snapping { transition: transform 200ms ease-out; }
+  .swipe-container .expense-item { border-bottom: none; }
+
   .sub-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 8px 0; border-bottom: 1px solid var(--bg-surface); gap: 6px;
