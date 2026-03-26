@@ -11,6 +11,8 @@ export interface Subscription {
   amount: number;
   day: number;
   paid?: boolean;
+  repeat?: 'daily' | 'weekly' | 'monthly';
+  repeatId?: string;
 }
 
 export interface MonthData {
