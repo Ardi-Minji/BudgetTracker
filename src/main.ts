@@ -204,7 +204,7 @@ function render(): void {
   const mm = String(currentMonth + 1).padStart(2, '0');
   const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const subDayEl = el('subDay') as HTMLInputElement;
-  subDayEl.value = '';
+  subDayEl.value = `${currentYear}-${mm}-01`;
   subDayEl.min = `${currentYear}-${mm}-01`;
   subDayEl.max = `${currentYear}-${mm}-${String(daysInCurrentMonth).padStart(2, '0')}`;
 
