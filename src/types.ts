@@ -2,6 +2,8 @@ export interface Expense {
   name: string;
   amount: number;
   category?: string;
+  repeat?: 'daily' | 'weekly' | 'monthly';
+  repeatId?: string;
 }
 
 export interface Subscription {
