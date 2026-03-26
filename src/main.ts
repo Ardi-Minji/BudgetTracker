@@ -140,7 +140,7 @@ function editSubscriptionModal(sub: { name: string; amount: number; day: number 
           </div>
           <div class="form-row">
             <label style="font-size:.8rem;color:var(--text-secondary);margin-bottom:4px;display:block;">Due Day</label>
-            <input type="date" id="editSubDay" value="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(sub.day).padStart(2, '0')}">
+            <input type="date" id="editSubDay" value="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(sub.day).padStart(2, '0')}" min="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01" max="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(new Date(currentYear, currentMonth + 1, 0).getDate()).padStart(2, '0')}">
           </div>
           <div class="edit-actions">
             <button class="btn btn-secondary" id="editSubCancel">Cancel</button>
@@ -202,7 +202,11 @@ function render(): void {
   (el('budgetInput') as HTMLInputElement).value = md.budget ? String(md.budget) : '';
   (el('dailyBudgetInput') as HTMLSelectElement).value = md.dailyBudget ? String(md.dailyBudget) : '0';
   const mm = String(currentMonth + 1).padStart(2, '0');
-  (el('subDay') as HTMLInputElement).value = `${currentYear}-${mm}-01`;
+  const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const subDayEl = el('subDay') as HTMLInputElement;
+  subDayEl.value = `${currentYear}-${mm}-01`;
+  subDayEl.min = `${currentYear}-${mm}-01`;
+  subDayEl.max = `${currentYear}-${mm}-${String(daysInCurrentMonth).padStart(2, '0')}`;
 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
