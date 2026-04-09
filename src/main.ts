@@ -1338,7 +1338,7 @@ function showAuthScreen(): void {
   hideLoadingScreen();
 }
 
-function showApp(user: User): void {
+function showApp(_user: User): void {
   el('authScreen').style.display = 'none';
   el('appMain').style.display = 'block';
   hideLoadingScreen();
