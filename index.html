@@ -983,6 +983,18 @@
     margin: 0;
     font-family: inherit;
   }
+  #depositSheet input[type="date"] {
+    text-align: left;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  #depositSheet input[type="date"]::-webkit-date-and-time-value {
+    text-align: left;
+  }
+  #depositSheet input[type="date"]::-webkit-date-and-time-value,
+  #depositSheet input[type="date"]::-webkit-datetime-edit {
+    min-height: 1.2em;
+  }
   #depositSheet .sheet-field-error {
     display: block;
     line-height: 1.2;
