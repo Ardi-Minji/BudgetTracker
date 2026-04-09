@@ -1,4 +1,4 @@
-import type { BudgetStore, Expense, Subscription, MonthData, MonthSummary, YearSummary, SavingsStore } from './types';
+import type { BudgetStore, Expense, Subscription, MonthData, MonthSummary, YearSummary, SavingsStore, SavingsEntry } from './types';
 import { initAuth, setAuthCallback, signIn, signUp, signInWithGoogle, signOut } from './auth';
 import { loadData, saveData, setUserId, syncIfPending } from './store';
 import { loadSavings, saveSavings, setSavingsUserId } from './savings';
@@ -305,10 +305,28 @@ const expandedYears = new Set<number>();
 
 // ── Savings State ────────────────────────────────────────────────────
 let savingsData: SavingsStore = { banks: [], entries: [] };
-let selectedBankId: string | null = null;
+let carouselIndex = 0;
 
-const BANK_COLORS = ['#4ade80', '#38bdf8', '#a78bfa', '#fbbf24', '#f87171', '#fb923c', '#34d399', '#e879f9'];
-let selectedBankColor = BANK_COLORS[0];
+// ── Brand Colors ─────────────────────────────────────────────────────
+const BRAND_COLORS: Record<string, string> = {
+  bdo: '#CC0000', bpi: '#003087', metrobank: '#003087',
+  unionbank: '#0033A0', gotyme: '#00C389', maya: '#00B4D8',
+  gcash: '#007DFF', wise: '#9FE870', other: '#94a3b8',
+};
+const BRAND_LIST = ['BDO', 'BPI', 'Metrobank', 'UnionBank', 'GoTyme', 'Maya', 'GCash', 'Wise', 'Other'];
+
+function brandColor(name: string): string {
+  return BRAND_COLORS[name.toLowerCase().replace(/\s/g, '')] ?? '#94a3b8';
+}
+
+// ── Savings Helpers ───────────────────────────────────────────────────
+function totalSavings(): number {
+  return savingsData.entries.reduce((s, e) => s + e.amount, 0);
+}
+
+function bankBalance(bankId: string): number {
+  return savingsData.entries.filter(e => e.bankId === bankId).reduce((s, e) => s + e.amount, 0);
+}
 
 function save(): void {
   saveData(data);
@@ -967,177 +985,540 @@ function renderMonthlySummary(): void {
 
 // ── Savings ──────────────────────────────────────────────────────────
 
-function saveSavingsData(): void {
-  saveSavings(savingsData);
+// ── Task 2: Carousel rendering ────────────────────────────────────────
+function buildCarouselHTML(): void {
+  const banks = savingsData.banks;
+  const carousel = el('savingsCarousel');
+
+  let html = '';
+
+  // Total_Card (index 0)
+  const total = totalSavings();
+  html += `
+    <div class="carousel-card">
+      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:8px;">Total Savings</div>
+      <div style="font-size:2rem;font-weight:800;color:var(--success);">${fmt(total)}</div>
+      ${banks.length === 0 ? `<div style="font-size:.8rem;color:var(--text-tertiary);margin-top:8px;">Tap + to add your first bank</div>` : ''}
+    </div>
+  `;
+
+  // One card per bank
+  for (const bank of banks) {
+    const bal = bankBalance(bank.id);
+    const color = bank.color || brandColor(bank.name);
+    const glow = color + '4D'; // 30% opacity
+    html += `
+      <div class="carousel-card" data-bid="${bank.id}"
+        style="border-left:4px solid ${color};box-shadow:0 0 16px ${glow};">
+        <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:${color};margin-bottom:8px;">${escHtml(bank.name)}</div>
+        <div style="font-size:2rem;font-weight:800;color:var(--text-primary);">${fmt(bal)}</div>
+      </div>
+    `;
+  }
+
+  carousel.innerHTML = html;
+  carousel.style.transform = `translateX(-${carouselIndex * 100}%)`;
 }
 
-function initBankColorPicker(): void {
-  const row = el('bankColorRow');
-  row.innerHTML = BANK_COLORS.map(c => `
-    <div class="color-swatch ${c === selectedBankColor ? 'selected' : ''}"
-      style="background:${c};" data-color="${c}"></div>
-  `).join('');
-  row.querySelectorAll<HTMLElement>('.color-swatch').forEach(sw => {
-    sw.addEventListener('click', () => {
-      selectedBankColor = sw.dataset.color!;
-      initBankColorPicker();
+function syncCarouselDots(): void {
+  const banks = savingsData.banks;
+  const total = 1 + banks.length;
+  let html = '';
+  for (let i = 0; i < total; i++) {
+    html += `<div class="carousel-dot${i === carouselIndex ? ' active' : ''}"></div>`;
+  }
+  el('carouselDots').innerHTML = html;
+}
+
+function attachCarouselGestures(): void {
+  const wrap = document.querySelector<HTMLElement>('.savings-carousel-wrap');
+  if (!wrap) return;
+
+  let startX = 0;
+  let startY = 0;
+  let isDragging = false;
+
+  function onStart(x: number, y: number): void {
+    startX = x;
+    startY = y;
+    isDragging = true;
+  }
+
+  function onEnd(endX: number, endY: number, target: EventTarget | null): void {
+    if (!isDragging) return;
+    isDragging = false;
+    const deltaX = endX - startX;
+    const deltaY = endY - startY;
+
+    if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
+      const maxIndex = savingsData.banks.length;
+      if (deltaX < 0) {
+        carouselIndex = Math.min(carouselIndex + 1, maxIndex);
+      } else {
+        carouselIndex = Math.max(carouselIndex - 1, 0);
+      }
+      el('savingsCarousel').style.transform = `translateX(-${carouselIndex * 100}%)`;
+      syncCarouselDots();
+    } else if (Math.abs(deltaX) <= 10 && Math.abs(deltaY) <= 10) {
+      // Tap — check for bank card
+      const cardEl = (target as HTMLElement)?.closest<HTMLElement>('[data-bid]');
+      if (cardEl) {
+        const bankId = cardEl.dataset.bid!;
+        openDepositSheet(bankId);
+      }
+    }
+  }
+
+  wrap.addEventListener('touchstart', (e) => {
+    onStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', (e) => {
+    onEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY, e.target);
+  }, { passive: true });
+
+  wrap.addEventListener('mousedown', (e) => {
+    onStart(e.clientX, e.clientY);
+  });
+
+  wrap.addEventListener('mouseup', (e) => {
+    onEnd(e.clientX, e.clientY, e.target);
+  });
+}
+
+// ── Task 3: FAB ───────────────────────────────────────────────────────
+let fabInitialized = false;
+
+function initFab(): void {
+  if (fabInitialized) return;
+  fabInitialized = true;
+
+  const fab = el('savingsFab');
+  const fabMenu = el('fabMenu');
+  const fabWrap = el('savingsFabWrap');
+
+  fab.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = fabMenu.hasAttribute('hidden');
+    if (isHidden) {
+      fabMenu.removeAttribute('hidden');
+      fab.classList.add('open');
+    } else {
+      fabMenu.setAttribute('hidden', '');
+      fab.classList.remove('open');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!fabWrap.contains(e.target as Node)) {
+      fabMenu.setAttribute('hidden', '');
+      fab.classList.remove('open');
+    }
+  });
+
+  el('fabDeposit').addEventListener('click', () => {
+    fabMenu.setAttribute('hidden', '');
+    fab.classList.remove('open');
+    openDepositSheet(null);
+  });
+
+  el('fabAddBank').addEventListener('click', () => {
+    fabMenu.setAttribute('hidden', '');
+    fab.classList.remove('open');
+    openAddBankSheet();
+  });
+}
+
+// ── Task 4: Deposit Entry Bottom Sheet ────────────────────────────────
+function openDepositSheet(bankId: string | null, entry?: SavingsEntry): void {
+  const banks = savingsData.banks;
+  const isEdit = !!entry;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const bankOptions = banks.map(b =>
+    `<option value="${b.id}" ${(entry ? entry.bankId === b.id : bankId === b.id) ? 'selected' : ''}>${escHtml(b.name)}</option>`
+  ).join('');
+
+  const container = el('dialogContainer');
+  container.innerHTML = `
+    <div class="bottom-sheet-overlay" id="depositOverlay">
+      <div class="bottom-sheet" id="depositSheet">
+        <div class="sheet-handle" id="depositHandle"></div>
+        <div class="sheet-title">${isEdit ? 'Edit Deposit' : 'Record Deposit'}</div>
+        <div class="sheet-field">
+          <label>Bank</label>
+          <select id="sheetBankSel">
+            <option value="">Select bank</option>
+            ${bankOptions}
+          </select>
+          <div class="sheet-field-error" id="sheetBankErr"></div>
+        </div>
+        <div class="sheet-field">
+          <label>Amount</label>
+          <input type="number" id="sheetAmount" min="0.01" step="0.01" placeholder="0.00"
+            value="${entry ? entry.amount : ''}">
+          <div class="sheet-field-error" id="sheetAmountErr"></div>
+        </div>
+        <div class="sheet-field">
+          <label>Date</label>
+          <input type="date" id="sheetDate" value="${entry ? entry.date : today}">
+        </div>
+        <div class="sheet-field">
+          <label>Note (optional)</label>
+          <input type="text" id="sheetNote" placeholder="e.g. Monthly savings"
+            value="${entry ? escHtml(entry.note ?? '') : ''}">
+        </div>
+        <button class="sheet-btn" id="sheetSaveBtn"
+          style="background:var(--btn-primary);color:#fff;margin-top:4px;">Save</button>
+      </div>
+    </div>
+  `;
+
+  // Drag-down dismiss
+  const sheet = el('depositSheet');
+  const handle = el('depositHandle');
+  let sheetStartY = 0;
+  handle.addEventListener('touchstart', (e) => { sheetStartY = e.touches[0].clientY; }, { passive: true });
+  handle.addEventListener('touchend', (e) => {
+    if (e.changedTouches[0].clientY - sheetStartY > 60) container.innerHTML = '';
+  }, { passive: true });
+  sheet.addEventListener('touchstart', (e) => { sheetStartY = e.touches[0].clientY; }, { passive: true });
+  sheet.addEventListener('touchend', (e) => {
+    if (e.changedTouches[0].clientY - sheetStartY > 60) container.innerHTML = '';
+  }, { passive: true });
+
+  // Backdrop dismiss
+  el('depositOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) container.innerHTML = '';
+  });
+
+  // Save handler
+  el('sheetSaveBtn').addEventListener('click', () => {
+    const selBank = (el('sheetBankSel') as HTMLSelectElement).value;
+    const amount = parseFloat((el('sheetAmount') as HTMLInputElement).value);
+    const date = (el('sheetDate') as HTMLInputElement).value;
+    const note = (el('sheetNote') as HTMLInputElement).value.trim();
+
+    let valid = true;
+    el('sheetBankErr').textContent = '';
+    el('sheetAmountErr').textContent = '';
+
+    if (!selBank) {
+      el('sheetBankErr').textContent = 'Please select a bank.';
+      valid = false;
+    }
+    if (!amount || amount <= 0) {
+      el('sheetAmountErr').textContent = 'Enter a valid amount greater than 0.';
+      valid = false;
+    }
+    if (!valid) return;
+
+    if (isEdit && entry) {
+      // Edit mode: mutate existing entry
+      const existing = savingsData.entries.find(e => e.id === entry.id);
+      if (existing) {
+        existing.bankId = selBank;
+        existing.amount = amount;
+        existing.date = date;
+        existing.note = note || undefined;
+      }
+    } else {
+      // Add mode
+      savingsData.entries.push({
+        id: genId(),
+        bankId: selBank,
+        amount,
+        date,
+        note: note || undefined,
+      });
+    }
+
+    saveSavings(savingsData);
+    triggerHaptic();
+
+    // Navigate carousel to the bank's card
+    const bankIdx = savingsData.banks.findIndex(b => b.id === selBank);
+    if (bankIdx >= 0) {
+      carouselIndex = 1 + bankIdx;
+    }
+
+    container.innerHTML = '';
+    renderSavings();
+
+    // Play shimmer and confetti after render
+    if (bankIdx >= 0) {
+      playShimmer(selBank);
+    }
+    playConfetti();
+  });
+}
+
+// ── Task 6: Deposit Feed ──────────────────────────────────────────────
+function groupedEntries(): Array<{ label: string; entries: SavingsEntry[] }> {
+  const sorted = [...savingsData.entries].sort((a, b) => b.date.localeCompare(a.date));
+  const groups = new Map<string, SavingsEntry[]>();
+  for (const entry of sorted) {
+    const key = entry.date.slice(0, 7);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(entry);
+  }
+  return [...groups.entries()].map(([key, entries]) => ({
+    label: formatMonthLabel(key),
+    entries,
+  }));
+}
+
+function formatMonthLabel(yyyyMM: string): string {
+  const [y, m] = yyyyMM.split('-').map(Number);
+  return `${MONTH_NAMES[m - 1]} ${y}`;
+}
+
+function buildFeedHTML(): void {
+  const feed = el('depositFeed');
+  const banks = savingsData.banks;
+
+  if (savingsData.entries.length === 0) {
+    feed.innerHTML = '<div class="empty-msg">No deposits yet. Tap + to record your first deposit.</div>';
+    return;
+  }
+
+  const groups = groupedEntries();
+  let html = '';
+
+  for (const group of groups) {
+    html += `<div class="feed-month-header">${escHtml(group.label)}</div>`;
+    for (const entry of group.entries) {
+      const bank = banks.find(b => b.id === entry.bankId);
+      const color = bank ? (bank.color || brandColor(bank.name)) : '#94a3b8';
+      const bankName = bank ? bank.name : 'Unknown';
+      html += `
+        <div class="feed-entry" data-eid="${entry.id}">
+          <div class="feed-action-edit">Edit</div>
+          <div class="feed-action-delete">Delete</div>
+          <div class="feed-entry-inner">
+            <div style="width:4px;height:40px;border-radius:2px;background:${color};margin-right:12px;flex-shrink:0;"></div>
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:.9rem;color:${color};">${escHtml(bankName)}</div>
+              <div style="font-size:.8rem;color:var(--text-tertiary);">${entry.date}</div>
+              ${entry.note ? `<div style="font-size:.75rem;color:var(--text-secondary);font-style:italic;">${escHtml(entry.note)}</div>` : ''}
+            </div>
+            <div style="font-size:1rem;font-weight:700;color:var(--success);">${fmt(entry.amount)}</div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  feed.innerHTML = html;
+}
+
+// ── Task 7: Feed swipe gestures ───────────────────────────────────────
+function attachFeedGestures(): void {
+  const feed = el('depositFeed');
+  const entries = feed.querySelectorAll<HTMLElement>('.feed-entry');
+
+  entries.forEach(row => {
+    const inner = row.querySelector<HTMLElement>('.feed-entry-inner')!;
+    const deleteBtn = row.querySelector<HTMLElement>('.feed-action-delete')!;
+    const editBtn = row.querySelector<HTMLElement>('.feed-action-edit')!;
+
+    let startX = 0;
+    let startY = 0;
+    let deltaX = 0;
+    let cancelled = false;
+
+    row.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      deltaX = 0;
+      cancelled = false;
+    }, { passive: true });
+
+    row.addEventListener('touchmove', (e) => {
+      if (cancelled) return;
+      const curX = e.touches[0].clientX;
+      const curY = e.touches[0].clientY;
+      deltaX = curX - startX;
+      const deltaY = curY - startY;
+
+      if (Math.abs(deltaY) > Math.abs(deltaX)) {
+        cancelled = true;
+        inner.style.transform = 'translateX(0)';
+        return;
+      }
+
+      const clamped = Math.max(-72, Math.min(72, deltaX));
+      inner.style.transform = `translateX(${clamped}px)`;
+    }, { passive: true });
+
+    row.addEventListener('touchend', () => {
+      if (cancelled || Math.abs(deltaX) < 72) {
+        inner.style.transform = 'translateX(0)';
+      } else if (deltaX <= -72) {
+        inner.style.transform = 'translateX(-72px)';
+      } else if (deltaX >= 72) {
+        inner.style.transform = 'translateX(72px)';
+      }
+    }, { passive: true });
+
+    // Delete action
+    deleteBtn.addEventListener('click', () => {
+      const eid = row.dataset.eid!;
+      savingsData.entries = savingsData.entries.filter(e => e.id !== eid);
+      saveSavings(savingsData);
+      // Animate row height to 0
+      row.style.transition = 'max-height 0.25s ease, opacity 0.25s ease';
+      row.style.maxHeight = row.offsetHeight + 'px';
+      row.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        row.style.maxHeight = '0';
+        row.style.opacity = '0';
+        row.style.marginBottom = '0';
+      });
+      setTimeout(() => renderSavings(), 260);
+    });
+
+    // Edit action
+    editBtn.addEventListener('click', () => {
+      const eid = row.dataset.eid!;
+      const entry = savingsData.entries.find(e => e.id === eid);
+      if (entry) openDepositSheet(entry.bankId, entry);
     });
   });
 }
 
-function renderSavings(): void {
-  const banks = savingsData.banks;
-  const entries = savingsData.entries;
+// ── Task 8: Add Bank Bottom Sheet ─────────────────────────────────────
+function openAddBankSheet(): void {
+  let selectedBrand: string | null = null;
 
-  // Total bar
-  const totalAll = entries.reduce((s, e) => s + e.amount, 0);
-  const totalBar = el('savingsTotalBar');
-  totalBar.innerHTML = `
-    <div class="savings-total-card">
-      <div class="stc-label">Total Savings</div>
-      <div class="stc-value">${fmt(totalAll)}</div>
-    </div>
-    ${banks.map(b => {
-      const bal = entries.filter(e => e.bankId === b.id).reduce((s, e) => s + e.amount, 0);
-      return `
-        <div class="savings-total-card" style="border-color:${b.color}33;">
-          <div class="stc-label" style="color:${b.color};">${escHtml(b.name)}</div>
-          <div class="stc-value" style="color:${b.color};">${fmt(bal)}</div>
+  const container = el('dialogContainer');
+  container.innerHTML = `
+    <div class="bottom-sheet-overlay" id="addBankOverlay">
+      <div class="bottom-sheet" id="addBankSheet">
+        <div class="sheet-handle" id="addBankHandle"></div>
+        <div class="sheet-title">Add Bank</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;" id="brandGrid">
+          ${BRAND_LIST.map(brand => {
+            const color = brandColor(brand);
+            return `
+              <div class="brand-tile" data-brand="${escHtml(brand)}"
+                style="display:flex;flex-direction:column;align-items:center;gap:6px;
+                  padding:10px 6px;border-radius:10px;border:2px solid var(--border);
+                  cursor:pointer;transition:border-color .15s;-webkit-tap-highlight-color:transparent;">
+                <div style="width:28px;height:28px;border-radius:50%;background:${color};"></div>
+                <div style="font-size:.7rem;font-weight:600;color:var(--text-secondary);text-align:center;">${escHtml(brand)}</div>
+              </div>
+            `;
+          }).join('')}
         </div>
-      `;
-    }).join('')}
+        <div class="sheet-field">
+          <label>Bank Name</label>
+          <input type="text" id="addBankName" placeholder="e.g. BDO">
+          <div class="sheet-field-error" id="addBankNameErr"></div>
+        </div>
+        <div class="sheet-field">
+          <label>Color</label>
+          <input type="color" id="addBankColor" value="#94a3b8" style="height:44px;padding:4px 8px;">
+        </div>
+        <button class="sheet-btn" id="addBankSaveBtn"
+          style="background:var(--btn-primary);color:#fff;margin-top:4px;">Add Bank</button>
+      </div>
+    </div>
   `;
 
-  // Bank cards
-  const bankCards = el('bankCards');
-  if (banks.length === 0) {
-    bankCards.innerHTML = '<div class="empty-msg">No banks added yet</div>';
-  } else {
-    bankCards.innerHTML = banks.map(b => {
-      const bal = entries.filter(e => e.bankId === b.id).reduce((s, e) => s + e.amount, 0);
-      const count = entries.filter(e => e.bankId === b.id).length;
-      const isActive = selectedBankId === b.id;
-      return `
-        <div class="bank-card ${isActive ? 'active' : ''}" data-bid="${b.id}" style="border-color:${isActive ? b.color : 'transparent'};">
-          <button class="bank-card-del" data-bid="${b.id}">&times;</button>
-          <div class="bank-card-accent" style="background:${b.color};"></div>
-          <div class="bank-card-name">${escHtml(b.name)}</div>
-          <div class="bank-card-balance" style="color:${b.color};">${fmt(bal)}</div>
-          <div class="bank-card-count">${count} deposit${count !== 1 ? 's' : ''}</div>
-        </div>
-      `;
-    }).join('');
-
-    bankCards.querySelectorAll<HTMLElement>('.bank-card').forEach(card => {
-      card.addEventListener('click', (e) => {
-        if ((e.target as HTMLElement).classList.contains('bank-card-del')) return;
-        const bid = card.dataset.bid!;
-        selectedBankId = selectedBankId === bid ? null : bid;
-        renderSavings();
+  // Brand tile selection
+  const grid = el('brandGrid');
+  grid.querySelectorAll<HTMLElement>('.brand-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      selectedBrand = tile.dataset.brand!;
+      const color = brandColor(selectedBrand);
+      (el('addBankName') as HTMLInputElement).value = selectedBrand;
+      (el('addBankColor') as HTMLInputElement).value = color;
+      // Highlight selected tile
+      grid.querySelectorAll<HTMLElement>('.brand-tile').forEach(t => {
+        t.style.borderColor = 'var(--border)';
       });
+      tile.style.borderColor = color;
     });
+  });
 
-    bankCards.querySelectorAll<HTMLButtonElement>('.bank-card-del').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const bid = btn.dataset.bid!;
-        savingsData.banks = savingsData.banks.filter(b => b.id !== bid);
-        savingsData.entries = savingsData.entries.filter(e => e.bankId !== bid);
-        if (selectedBankId === bid) selectedBankId = null;
-        saveSavingsData();
-        renderSavings();
-      });
-    });
+  // Drag-down dismiss
+  const sheet = el('addBankSheet');
+  const handle = el('addBankHandle');
+  let sheetStartY = 0;
+  handle.addEventListener('touchstart', (e) => { sheetStartY = e.touches[0].clientY; }, { passive: true });
+  handle.addEventListener('touchend', (e) => {
+    if (e.changedTouches[0].clientY - sheetStartY > 60) container.innerHTML = '';
+  }, { passive: true });
+  sheet.addEventListener('touchstart', (e) => { sheetStartY = e.touches[0].clientY; }, { passive: true });
+  sheet.addEventListener('touchend', (e) => {
+    if (e.changedTouches[0].clientY - sheetStartY > 60) container.innerHTML = '';
+  }, { passive: true });
+
+  // Backdrop dismiss
+  el('addBankOverlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) container.innerHTML = '';
+  });
+
+  // Save handler
+  el('addBankSaveBtn').addEventListener('click', () => {
+    const name = (el('addBankName') as HTMLInputElement).value.trim();
+    const color = (el('addBankColor') as HTMLInputElement).value;
+
+    el('addBankNameErr').textContent = '';
+    if (!name) {
+      el('addBankNameErr').textContent = 'Bank name cannot be empty.';
+      return;
+    }
+
+    savingsData.banks.push({ id: genId(), name, color });
+    saveSavings(savingsData);
+    container.innerHTML = '';
+    renderSavings();
+  });
+}
+
+// ── Task 9: Shimmer, confetti, haptic ─────────────────────────────────
+function triggerHaptic(): void {
+  navigator.vibrate?.(80);
+}
+
+function playShimmer(bankId: string): void {
+  const card = el('savingsCarousel').querySelector<HTMLElement>(`[data-bid="${bankId}"]`);
+  if (!card) return;
+  card.classList.add('bank-card-shimmer');
+  setTimeout(() => card.classList.remove('bank-card-shimmer'), 800);
+}
+
+function playConfetti(): void {
+  const overlay = document.createElement('div');
+  overlay.className = 'confetti-overlay';
+  const colors = ['#f87171', '#fbbf24', '#4ade80', '#38bdf8', '#a78bfa', '#fb923c', '#e879f9', '#34d399'];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    p.className = 'confetti-particle';
+    const left = Math.random() * 100;
+    const top = -(20 + Math.random() * 40);
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const duration = 0.8 + Math.random() * 0.4;
+    p.style.cssText = `left:${left}vw;top:${top}px;background:${color};animation-duration:${duration}s;`;
+    overlay.appendChild(p);
   }
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 1200);
+}
 
-  // Populate deposit bank dropdown
-  const depositBankSel = el('depositBank') as HTMLSelectElement;
-  const prevVal = depositBankSel.value;
-  depositBankSel.innerHTML = '<option value="">Select bank</option>' +
-    banks.map(b => `<option value="${b.id}">${escHtml(b.name)}</option>`).join('');
-  if (prevVal) depositBankSel.value = prevVal;
-
-  // Entries list (filtered by selected bank)
-  const filtered = selectedBankId
-    ? entries.filter(e => e.bankId === selectedBankId)
-    : [...entries];
-  filtered.sort((a, b) => b.date.localeCompare(a.date));
-
-  const filterLabel = el('savingsFilterLabel');
-  if (selectedBankId) {
-    const bank = banks.find(b => b.id === selectedBankId);
-    filterLabel.textContent = bank ? `— ${bank.name}` : '';
-  } else {
-    filterLabel.textContent = '— All Banks';
-  }
-
-  const entryList = el('savingsEntryList');
-  if (filtered.length === 0) {
-    entryList.innerHTML = '<div class="empty-msg">No deposits yet</div>';
-  } else {
-    entryList.innerHTML = filtered.map(entry => {
-      const bank = banks.find(b => b.id === entry.bankId);
-      return `
-        <div class="savings-entry-item">
-          <div class="sei-left">
-            <span class="sei-bank" style="color:${bank?.color ?? '#94a3b8'};">${escHtml(bank?.name ?? 'Unknown')}</span>
-            <span class="sei-date">${entry.date}</span>
-            ${entry.note ? `<span class="sei-note">${escHtml(entry.note)}</span>` : ''}
-          </div>
-          <div style="display:flex;align-items:center;gap:4px;">
-            <span class="sei-amount">${fmt(entry.amount)}</span>
-            <button class="sei-del" data-eid="${entry.id}">&times;</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    entryList.querySelectorAll<HTMLButtonElement>('.sei-del').forEach(btn => {
-      btn.addEventListener('click', () => {
-        savingsData.entries = savingsData.entries.filter(e => e.id !== btn.dataset.eid);
-        saveSavingsData();
-        renderSavings();
-      });
-    });
-  }
+// ── Task 10: renderSavings() ──────────────────────────────────────────
+function renderSavings(): void {
+  buildCarouselHTML();
+  syncCarouselDots();
+  attachCarouselGestures();
+  buildFeedHTML();
+  attachFeedGestures();
 }
 
 // ── Savings Event Listeners ──────────────────────────────────────────
-
-el('addBankBtn').addEventListener('click', () => {
-  const nameInput = el('bankName') as HTMLInputElement;
-  const name = nameInput.value.trim();
-  if (!name) { alert('Enter a bank name.'); return; }
-  const id = `bank-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  savingsData.banks.push({ id, name, color: selectedBankColor });
-  saveSavingsData();
-  nameInput.value = '';
-  renderSavings();
-});
-
-el('addDepositBtn').addEventListener('click', () => {
-  const bankSel = el('depositBank') as HTMLSelectElement;
-  const amountInput = el('depositAmount') as HTMLInputElement;
-  const dateInput = el('depositDate') as HTMLInputElement;
-  const noteInput = el('depositNote') as HTMLInputElement;
-
-  const bankId = bankSel.value;
-  const amount = parseFloat(amountInput.value);
-  const date = dateInput.value;
-  const note = noteInput.value.trim();
-
-  if (!bankId) { alert('Select a bank.'); return; }
-  if (!amount || amount <= 0) { alert('Enter a valid amount.'); return; }
-  if (!date) { alert('Select a date.'); return; }
-
-  const id = `entry-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  savingsData.entries.push({ id, bankId, amount, date, note: note || undefined });
-  saveSavingsData();
-
-  amountInput.value = '';
-  noteInput.value = '';
-  renderSavings();
-});
+// (Handled via FAB and bottom sheets — see initFab(), openDepositSheet(), openAddBankSheet())
 
 // ── Event Listeners ──────────────────────────────────────────────────
 
@@ -1317,7 +1698,7 @@ document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
     el(`tab-${tab}`).classList.add('active');
     monthNav.style.visibility = tab === 'calendar' ? 'visible' : 'hidden';
     if (tab === 'summary') renderMonthlySummary();
-    if (tab === 'savings') renderSavings();
+    if (tab === 'savings') { renderSavings(); initFab(); }
   });
 });
 
@@ -1399,15 +1780,10 @@ el('logoutBtn').addEventListener('click', async () => {
 });
 
 // ── Init ─────────────────────────────────────────────────────────────
-initBankColorPicker();
-
 const now = new Date();
 currentYear = now.getFullYear();
 currentMonth = now.getMonth();
 selectedDay = now.getDate();
-
-// Default deposit date to today
-(el('depositDate') as HTMLInputElement).value = now.toISOString().slice(0, 10);
 
 setAuthCallback(async (user: User | null) => {
   if (!user) {

@@ -728,74 +728,220 @@
     100% { content: '...'; }
   }
 
-  /* ── Savings Section ── */
-  .savings-section { }
+  /* ── Savings Redesign ── */
 
-  .savings-toggle { display: none; }
-  .savings-wrap { display: block; overflow: visible; max-height: none; padding: 0; border: none; background: none; }
-  .savings-inner { display: flex; flex-direction: column; gap: 12px; }
-
-  .savings-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 640px) { .savings-forms { grid-template-columns: 1fr; } }
-
-  .savings-form-panel {
-    background: var(--bg-primary); border-radius: 10px; padding: 14px; border: 1px solid var(--border);
+  /* Carousel */
+  .savings-carousel-wrap {
+    overflow: hidden;
+    padding-bottom: 24px;
   }
-  .savings-form-panel h4 { font-size: .85rem; color: var(--text-heading); margin-bottom: 10px; }
-
-  .color-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-  .color-swatch {
-    width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
-    border: 2px solid transparent; transition: border-color .15s;
+  .savings-carousel {
+    display: flex;
+    transition: transform 0.3s ease;
   }
-  .color-swatch.selected { border-color: var(--text-primary); }
+  .carousel-card {
+    flex-shrink: 0;
+    width: 100%;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid var(--border);
+  }
+  .carousel-dots {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+  }
+  .carousel-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border-hover);
+    transition: background 0.2s;
+  }
+  .carousel-dot.active {
+    background: var(--accent);
+  }
 
-  .bank-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-  @media (max-width: 640px) { .bank-cards { grid-template-columns: 1fr 1fr; } }
+  /* FAB */
+  .savings-fab-wrap {
+    position: fixed;
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    z-index: 200;
+  }
+  .fab {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fab.open {
+    transform: rotate(45deg);
+  }
+  .fab-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .fab-action {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: .9rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fab-action:hover { background: var(--bg-elevated); }
 
-  .bank-card {
-    background: var(--bg-primary); border-radius: 12px; padding: 14px;
-    border: 2px solid transparent; cursor: pointer; transition: border-color .2s, background .2s;
+  /* Deposit Feed */
+  .deposit-feed {
+    display: flex;
+    flex-direction: column;
+  }
+  .feed-month-header {
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary);
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--text-tertiary);
+    padding: 8px 0 4px;
+    z-index: 10;
+  }
+  .feed-entry {
     position: relative;
+    overflow: hidden;
+    margin-bottom: 6px;
+    border-radius: 10px;
   }
-  .bank-card:hover { background: var(--month-card-hover); }
-  .bank-card.active { background: var(--month-card-hover); }
+  .feed-entry-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-surface);
+    border-radius: 10px;
+    transition: transform 0.2s ease;
+    position: relative;
+    z-index: 1;
+  }
+  .feed-action-delete {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    background: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    border-radius: 0 10px 10px 0;
+  }
+  .feed-action-edit {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: #3b82f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 20px;
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 600;
+    border-radius: 10px 0 0 10px;
+  }
 
-  .bank-card-accent { width: 32px; height: 4px; border-radius: 2px; margin-bottom: 10px; }
-  .bank-card-name { font-size: .9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-  .bank-card-balance { font-size: 1.1rem; font-weight: 700; color: var(--success); }
-  .bank-card-count { font-size: .7rem; color: var(--text-tertiary); margin-top: 2px; }
-  .bank-card-del {
-    position: absolute; top: 8px; right: 8px;
-    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: .9rem; padding: 2px 5px;
+  /* Bottom sheet form fields */
+  .sheet-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
   }
-  .bank-card-del:hover { color: var(--danger); }
+  .sheet-field label {
+    font-size: .75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .sheet-field input,
+  .sheet-field select {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-hover);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: .95rem;
+    width: 100%;
+    transition: border-color .2s;
+  }
+  .sheet-field input:focus,
+  .sheet-field select:focus { outline: none; border-color: var(--accent); }
+  .sheet-field-error {
+    font-size: .75rem;
+    color: var(--danger);
+    min-height: 16px;
+  }
 
-  .savings-entries-wrap { background: var(--bg-primary); border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
-  .savings-entries-wrap h4 { font-size: .85rem; color: var(--text-heading); margin-bottom: 10px; }
+  /* Shimmer animation */
+  @keyframes shimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+  .bank-card-shimmer {
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.3) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: shimmer 0.7s ease forwards;
+  }
 
-  .savings-entry-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 9px 0; border-bottom: 1px solid var(--bg-surface);
+  /* Confetti animations */
+  @keyframes confettiFall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
   }
-  .savings-entry-item:last-child { border-bottom: none; }
-  .sei-left { display: flex; flex-direction: column; gap: 2px; }
-  .sei-bank { font-size: .75rem; font-weight: 700; }
-  .sei-date { font-size: .7rem; color: var(--text-tertiary); }
-  .sei-note { font-size: .7rem; color: var(--text-secondary); font-style: italic; }
-  .sei-amount { font-size: .95rem; font-weight: 700; color: var(--success); }
-  .sei-del {
-    background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: .9rem; padding: 0 4px; margin-left: 8px;
+  .confetti-particle {
+    position: fixed;
+    pointer-events: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    animation: confettiFall linear forwards;
   }
-  .sei-del:hover { color: var(--danger); }
-
-  .savings-total-bar { display: flex; gap: 12px; flex-wrap: wrap; }
-  .savings-total-card {
-    background: var(--bg-primary); border-radius: 10px; padding: 12px 16px;
-    border: 1px solid var(--border); flex: 1; min-width: 120px;
+  .confetti-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9000;
   }
-  .stc-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-tertiary); }
-  .stc-value { font-size: 1.1rem; font-weight: 700; color: var(--success); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -975,41 +1121,17 @@
 
     <!-- Tab: Savings -->
     <div class="tab-pane" id="tab-savings">
-      <div class="savings-section">
-        <div class="savings-wrap">
-          <div class="savings-inner">
-            <div class="savings-total-bar" id="savingsTotalBar"></div>
-            <div class="bank-cards" id="bankCards"></div>
-            <div class="savings-forms">
-              <div class="savings-form-panel">
-                <h4>Add Bank / Wallet</h4>
-                <div class="form-row">
-                  <input type="text" id="bankName" placeholder="e.g. BDO, GCash, Maya">
-                </div>
-                <div class="color-row" id="bankColorRow"></div>
-                <button class="btn btn-primary" id="addBankBtn" style="width:100%;">Add Bank</button>
-              </div>
-              <div class="savings-form-panel">
-                <h4>Record Deposit</h4>
-                <div class="form-row">
-                  <select id="depositBank"><option value="">Select bank</option></select>
-                </div>
-                <div class="form-row">
-                  <input type="number" id="depositAmount" placeholder="Amount" min="0" step="0.01">
-                  <input type="date" id="depositDate" style="max-width:140px;">
-                </div>
-                <div class="form-row">
-                  <input type="text" id="depositNote" placeholder="Note (optional)">
-                </div>
-                <button class="btn btn-primary" id="addDepositBtn" style="width:100%;">Save Deposit</button>
-              </div>
-            </div>
-            <div class="savings-entries-wrap">
-              <h4>Recent Deposits <span id="savingsFilterLabel" style="color:var(--text-tertiary);font-weight:400;"></span></h4>
-              <div id="savingsEntryList"></div>
-            </div>
-          </div>
+      <div class="savings-carousel-wrap">
+        <div class="savings-carousel" id="savingsCarousel"></div>
+        <div class="carousel-dots" id="carouselDots"></div>
+      </div>
+      <div class="deposit-feed" id="depositFeed"></div>
+      <div class="savings-fab-wrap" id="savingsFabWrap">
+        <div class="fab-menu" id="fabMenu" hidden>
+          <button class="fab-action" id="fabDeposit">💰 Record Deposit</button>
+          <button class="fab-action" id="fabAddBank">🏦 Add Bank</button>
         </div>
+        <button class="fab" id="savingsFab" aria-label="Quick actions">＋</button>
       </div>
     </div>
 
