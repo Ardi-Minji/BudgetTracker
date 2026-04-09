@@ -1,4 +1,4 @@
-import type { BudgetStore, Expense, Subscription, MonthData, MonthSummary, YearSummary, SavingsStore, Bank, SavingsEntry } from './types';
+import type { BudgetStore, Expense, Subscription, MonthData, MonthSummary, YearSummary, SavingsStore } from './types';
 import { initAuth, setAuthCallback, signIn, signUp, signInWithGoogle, signOut } from './auth';
 import { loadData, saveData, setUserId, syncIfPending } from './store';
 import { loadSavings, saveSavings, setSavingsUserId } from './savings';
@@ -1397,7 +1397,6 @@ el('logoutBtn').addEventListener('click', async () => {
 });
 
 // ── Init ─────────────────────────────────────────────────────────────
-initSubDaySelect();
 initBankColorPicker();
 
 const now = new Date();
