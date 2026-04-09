@@ -1346,6 +1346,34 @@ function attachFeedGestures(): void {
     let cancelled = false;
     let isPointerDown = false;
     const swipeReveal = 56;
+    const fullSwipeTrigger = 132;
+    let actionLocked = false;
+
+    const eid = row.dataset.eid!;
+
+    function deleteEntry(): void {
+      if (actionLocked) return;
+      actionLocked = true;
+      savingsData.entries = savingsData.entries.filter(e => e.id !== eid);
+      saveSavings(savingsData);
+      // Animate row height to 0
+      row.style.transition = 'max-height 0.25s ease, opacity 0.25s ease';
+      row.style.maxHeight = row.offsetHeight + 'px';
+      row.style.overflow = 'hidden';
+      requestAnimationFrame(() => {
+        row.style.maxHeight = '0';
+        row.style.opacity = '0';
+        row.style.marginBottom = '0';
+      });
+      setTimeout(() => renderSavings(), 260);
+    }
+
+    function editEntry(): void {
+      if (actionLocked) return;
+      actionLocked = true;
+      const entry = savingsData.entries.find(e => e.id === eid);
+      if (entry) openDepositSheet(entry.bankId, entry);
+    }
 
     function onStart(x: number, y: number): void {
       startX = x;
@@ -1353,6 +1381,7 @@ function attachFeedGestures(): void {
       deltaX = 0;
       cancelled = false;
       isPointerDown = true;
+      actionLocked = false;
     }
 
     function onMove(x: number, y: number): void {
@@ -1375,6 +1404,14 @@ function attachFeedGestures(): void {
     function onEnd(): void {
       if (!isPointerDown) return;
       isPointerDown = false;
+      if (deltaX <= -fullSwipeTrigger) {
+        deleteEntry();
+        return;
+      }
+      if (deltaX >= fullSwipeTrigger) {
+        editEntry();
+        return;
+      }
       if (cancelled || Math.abs(deltaX) < swipeReveal) {
         inner.style.transform = 'translateX(0)';
       } else if (deltaX <= -72) {
@@ -1405,26 +1442,12 @@ function attachFeedGestures(): void {
 
     // Delete action
     deleteBtn.addEventListener('click', () => {
-      const eid = row.dataset.eid!;
-      savingsData.entries = savingsData.entries.filter(e => e.id !== eid);
-      saveSavings(savingsData);
-      // Animate row height to 0
-      row.style.transition = 'max-height 0.25s ease, opacity 0.25s ease';
-      row.style.maxHeight = row.offsetHeight + 'px';
-      row.style.overflow = 'hidden';
-      requestAnimationFrame(() => {
-        row.style.maxHeight = '0';
-        row.style.opacity = '0';
-        row.style.marginBottom = '0';
-      });
-      setTimeout(() => renderSavings(), 260);
+      deleteEntry();
     });
 
     // Edit action
     editBtn.addEventListener('click', () => {
-      const eid = row.dataset.eid!;
-      const entry = savingsData.entries.find(e => e.id === eid);
-      if (entry) openDepositSheet(entry.bankId, entry);
+      editEntry();
     });
   });
 }
