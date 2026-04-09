@@ -1165,16 +1165,20 @@ el('nextMonth').addEventListener('click', () => {
 // ── Swipe Gesture for Month Navigation ──────────────────────────────
 function slideCalendar(direction: 'left' | 'right', then: () => void): void {
   const grid = el('calendarGrid');
+  const calendarTabActive = el('tab-calendar').classList.contains('active');
+
+  if (!calendarTabActive) {
+    then();
+    return;
+  }
+
   // Slide current content out
   grid.classList.add(direction === 'left' ? 'slide-out-left' : 'slide-out-right');
   grid.addEventListener('transitionend', function handler() {
     grid.removeEventListener('transitionend', handler);
-    // Update data
     then();
-    // Position new content on opposite side (no transition)
     grid.classList.remove('slide-out-left', 'slide-out-right');
     grid.classList.add(direction === 'left' ? 'slide-in-left' : 'slide-in-right');
-    // Force reflow then slide in
     void grid.offsetWidth;
     grid.classList.remove('slide-in-left', 'slide-in-right');
   }, { once: true });
@@ -1302,6 +1306,8 @@ el('addSubBtn').addEventListener('click', () => {
 });
 
 // ── Tab Navigation ────────────────────────────────────────────────────
+const monthNav = document.querySelector<HTMLElement>('.month-nav')!;
+
 document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab!;
@@ -1309,6 +1315,7 @@ document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     el(`tab-${tab}`).classList.add('active');
+    monthNav.style.visibility = tab === 'calendar' ? 'visible' : 'hidden';
     if (tab === 'summary') renderMonthlySummary();
     if (tab === 'savings') renderSavings();
   });
