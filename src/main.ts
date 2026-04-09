@@ -391,7 +391,14 @@ function render(): void {
 
     div.innerHTML = html;
     const dayNum = d;
-    div.addEventListener('click', () => { selectedDay = dayNum; render(); });
+    div.addEventListener('click', () => {
+      selectedDay = dayNum;
+      triggerHaptic();
+      render();
+      // Reduce taps: jump straight to amount entry after selecting a date.
+      const amountInput = el('expenseAmount') as HTMLInputElement;
+      setTimeout(() => amountInput.focus(), 0);
+    });
     grid.appendChild(div);
   }
 
