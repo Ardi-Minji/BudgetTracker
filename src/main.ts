@@ -990,23 +990,34 @@ function buildCarouselHTML(): void {
   const banks = savingsData.banks;
   const carousel = el('savingsCarousel');
 
+  // Static total hero (separate from carousel)
+  const heroEl = document.getElementById('savingsTotalHero');
+  if (heroEl) {
+    if (banks.length === 0) {
+      heroEl.innerHTML = `
+        <div class="hero-label">Total Savings</div>
+        <div class="hero-amount">${fmt(totalSavings())}</div>
+        <div style="font-size:.8rem;color:var(--text-tertiary);margin-top:6px;">Tap + to add your first bank</div>
+      `;
+    } else {
+      heroEl.innerHTML = `
+        <div class="hero-label">Total Savings</div>
+        <div class="hero-amount">${fmt(totalSavings())}</div>
+      `;
+    }
+  }
+
+  // Carousel: bank cards only
+  if (banks.length === 0) {
+    carousel.innerHTML = '';
+    return;
+  }
+
   let html = '';
-
-  // Total_Card (index 0)
-  const total = totalSavings();
-  html += `
-    <div class="carousel-card">
-      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-tertiary);margin-bottom:8px;">Total Savings</div>
-      <div style="font-size:2rem;font-weight:800;color:var(--success);">${fmt(total)}</div>
-      ${banks.length === 0 ? `<div style="font-size:.8rem;color:var(--text-tertiary);margin-top:8px;">Tap + to add your first bank</div>` : ''}
-    </div>
-  `;
-
-  // One card per bank
   for (const bank of banks) {
     const bal = bankBalance(bank.id);
     const color = bank.color || brandColor(bank.name);
-    const glow = color + '4D'; // 30% opacity
+    const glow = color + '4D';
     html += `
       <div class="carousel-card" data-bid="${bank.id}"
         style="border-left:4px solid ${color};box-shadow:0 0 16px ${glow};">
@@ -1017,20 +1028,26 @@ function buildCarouselHTML(): void {
   }
 
   carousel.innerHTML = html;
+  // Clamp index to valid range after re-render
+  carouselIndex = Math.max(0, Math.min(carouselIndex, banks.length - 1));
   carousel.style.transform = `translateX(-${carouselIndex * 100}%)`;
 }
 
 function syncCarouselDots(): void {
   const banks = savingsData.banks;
-  const total = 1 + banks.length;
   let html = '';
-  for (let i = 0; i < total; i++) {
+  for (let i = 0; i < banks.length; i++) {
     html += `<div class="carousel-dot${i === carouselIndex ? ' active' : ''}"></div>`;
   }
   el('carouselDots').innerHTML = html;
 }
 
+let carouselGesturesInitialized = false;
+
 function attachCarouselGestures(): void {
+  if (carouselGesturesInitialized) return;
+  carouselGesturesInitialized = true;
+
   const wrap = document.querySelector<HTMLElement>('.savings-carousel-wrap');
   if (!wrap) return;
 
@@ -1051,7 +1068,8 @@ function attachCarouselGestures(): void {
     const deltaY = endY - startY;
 
     if (Math.abs(deltaX) > 40 && Math.abs(deltaX) > Math.abs(deltaY)) {
-      const maxIndex = savingsData.banks.length;
+      const maxIndex = savingsData.banks.length - 1;
+      if (maxIndex < 0) return;
       if (deltaX < 0) {
         carouselIndex = Math.min(carouselIndex + 1, maxIndex);
       } else {
@@ -1239,7 +1257,7 @@ function openDepositSheet(bankId: string | null, entry?: SavingsEntry): void {
     // Navigate carousel to the bank's card
     const bankIdx = savingsData.banks.findIndex(b => b.id === selBank);
     if (bankIdx >= 0) {
-      carouselIndex = 1 + bankIdx;
+      carouselIndex = bankIdx;
     }
 
     container.innerHTML = '';

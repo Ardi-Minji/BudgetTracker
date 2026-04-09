@@ -735,6 +735,23 @@
     overflow: hidden;
     padding-bottom: 24px;
   }
+
+  /* Static total hero above carousel */
+  .savings-total-hero {
+    background: var(--bg-surface);
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    text-align: center;
+  }
+  .savings-total-hero .hero-label {
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--text-tertiary); margin-bottom: 6px;
+  }
+  .savings-total-hero .hero-amount {
+    font-size: 2.2rem; font-weight: 800; color: var(--success);
+  }
   .savings-carousel {
     display: flex;
     transition: transform 0.3s ease;
@@ -1121,6 +1138,9 @@
 
     <!-- Tab: Savings -->
     <div class="tab-pane" id="tab-savings">
+      <!-- Static total hero -->
+      <div class="savings-total-hero" id="savingsTotalHero"></div>
+      <!-- Bank carousel -->
       <div class="savings-carousel-wrap">
         <div class="savings-carousel" id="savingsCarousel"></div>
         <div class="carousel-dots" id="carouselDots"></div>
