@@ -91,24 +91,64 @@
     transition: background .3s, color .3s;
   }
 
-  .app { max-width: 1200px; margin: 0 auto; padding: 20px; }
+  .app { max-width: 600px; margin: 0 auto; }
 
-  header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  /* ── Tab Layout ── */
+  .app-shell {
+    display: flex; flex-direction: column;
+    height: 100dvh; overflow: hidden;
   }
 
-  h1 { font-size: 1.6rem; color: var(--accent); }
+  /* Top bar */
+  .top-bar {
+    flex-shrink: 0;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .top-bar-left { display: flex; align-items: center; gap: 8px; }
+  .top-bar h1 { font-size: 1rem; color: var(--accent); white-space: nowrap; }
 
-  .month-nav { display: flex; align-items: center; gap: 12px; }
-
+  .month-nav { display: flex; align-items: center; gap: 8px; }
   .month-nav button {
-    background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary);
-    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: .95rem;
-    transition: background .2s;
+    background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary);
+    padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: .9rem;
+    transition: background .2s; min-height: 36px;
   }
   .month-nav button:hover { background: var(--border); }
-  .month-nav span { font-size: 1.15rem; font-weight: 600; min-width: 180px; text-align: center; }
+  .month-nav span { font-size: .95rem; font-weight: 600; min-width: 130px; text-align: center; }
+
+  /* Tab content area */
+  .tab-content {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    padding: 12px 16px;
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 70px);
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* Bottom nav */
+  .bottom-nav {
+    flex-shrink: 0;
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg-surface); border-top: 1px solid var(--border);
+    display: flex; z-index: 100;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-width: 600px; margin: 0 auto;
+  }
+  .nav-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 8px 4px; background: none; border: none; cursor: pointer;
+    color: var(--text-tertiary); font-size: .65rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .04em;
+    transition: color .2s; -webkit-tap-highlight-color: transparent;
+    min-height: 56px;
+  }
+  .nav-btn .nav-icon { font-size: 1.3rem; line-height: 1; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-btn.active .nav-icon { transform: scale(1.1); }
+
+  h1 { font-size: 1.6rem; color: var(--accent); }
 
   /* Theme Toggle */
   .theme-toggle {
@@ -122,17 +162,17 @@
 
   /* Summary Cards */
   .summary {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 14px; margin-bottom: 24px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; margin-bottom: 14px;
   }
 
   .card {
-    background: var(--bg-surface); border-radius: 12px; padding: 18px;
+    background: var(--bg-surface); border-radius: 12px; padding: 14px;
     border: 1px solid var(--border); transition: background .3s, border-color .3s;
   }
   .card.budget-pair {
     grid-column: 1 / -1;
-    display: flex; align-items: center; gap: 16px;
+    display: flex; align-items: center; gap: 12px;
   }
   .budget-half { flex: 1; min-width: 0; overflow: hidden; }
   .budget-half label { display: block; }
@@ -141,40 +181,39 @@
     background: var(--border);
   }
 
-  .card label { font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); display: block; margin-bottom: 6px; }
-  .card .value { font-size: 1.5rem; font-weight: 700; }
+  .card label { font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); display: block; margin-bottom: 4px; }
+  .card .value { font-size: 1.2rem; font-weight: 700; }
   .card .value.green { color: var(--success); }
   .card .value.red { color: var(--danger); }
   .card .value.blue, .card .value.accent { color: var(--accent); }
   .card .value.amber { color: var(--warning); }
   .card .value.purple { color: var(--purple); }
 
-  .budget-input-group { display: flex; align-items: center; gap: 8px; }
+  .budget-input-group { display: flex; align-items: center; gap: 6px; }
   .budget-input-group input {
     background: var(--bg-primary); border: 1px solid var(--border-hover);
-    padding: 6px 10px; border-radius: 6px; font-size: 1.3rem; font-weight: 700;
-    width: 160px; color: var(--accent); transition: background .3s, border-color .3s;
+    padding: 4px 8px; border-radius: 6px; font-size: 1.1rem; font-weight: 700;
+    width: 100%; color: var(--accent); transition: background .3s, border-color .3s;
   }
   .budget-input-group input:focus, .budget-input-group select:focus { outline: none; border-color: var(--accent); }
   .budget-input-group select {
     background: var(--bg-primary); border: 1px solid var(--border-hover);
-    padding: 6px 10px; border-radius: 6px; font-size: 1.3rem; font-weight: 700;
+    padding: 4px 8px; border-radius: 6px; font-size: 1.1rem; font-weight: 700;
     max-width: 100%; min-width: 0; color: var(--accent); transition: background .3s, border-color .3s;
     cursor: pointer; appearance: auto;
   }
 
-  /* Layout: Calendar + Sidebar */
-  .main-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
-  @media (max-width: 900px) { .main-layout { grid-template-columns: 1fr; } }
+  /* Calendar tab layout */
+  .calendar-expense-layout { display: flex; flex-direction: column; gap: 12px; }
 
   /* Calendar */
   .calendar-wrap {
-    background: var(--bg-surface); border-radius: 12px; padding: 16px;
+    background: var(--bg-surface); border-radius: 12px; padding: 12px;
     border: 1px solid var(--border); transition: background .3s, border-color .3s;
   }
 
-  .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 8px; }
-  .weekdays span { font-size: .75rem; font-weight: 600; color: var(--text-tertiary); padding: 6px 0; text-transform: uppercase; }
+  .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 6px; }
+  .weekdays span { font-size: .7rem; font-weight: 600; color: var(--text-tertiary); padding: 4px 0; text-transform: uppercase; }
 
   .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; transition: transform .25s ease, opacity .25s ease; }
   .days.slide-out-left  { transform: translateX(-100%); opacity: 0; }
@@ -184,7 +223,7 @@
   .calendar-wrap { overflow: hidden; }
 
   .day {
-    background: var(--bg-primary); border-radius: 8px; min-height: 80px; padding: 6px 8px;
+    background: var(--bg-primary); border-radius: 6px; min-height: 52px; padding: 4px 5px;
     cursor: pointer; border: 2px solid transparent; transition: border-color .2s, background .3s;
     position: relative; overflow: hidden;
   }
@@ -202,13 +241,13 @@
   .day .dot.sub { background: var(--purple); }
 
   /* Sidebar */
-  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+  .sidebar { display: flex; flex-direction: column; gap: 12px; }
 
   .panel {
-    background: var(--bg-surface); border-radius: 12px; padding: 16px;
+    background: var(--bg-surface); border-radius: 12px; padding: 14px;
     border: 1px solid var(--border); transition: background .3s, border-color .3s;
   }
-  .panel h3 { font-size: .95rem; margin-bottom: 12px; color: var(--text-heading); }
+  .panel h3 { font-size: .9rem; margin-bottom: 10px; color: var(--text-heading); }
 
   .form-row { display: flex; gap: 8px; margin-bottom: 10px; }
   .form-row input, .form-row select {
@@ -414,23 +453,11 @@
   .empty-msg { color: var(--border-hover); font-size: .8rem; font-style: italic; padding: 8px 0; }
 
   /* ── Monthly Summary Section ─────────────────────────────────── */
-  .monthly-summary-section { margin-top: 24px; }
+  .monthly-summary-section { }
 
-  .summary-toggle {
-    background: var(--bg-surface); border: 1px solid var(--border); color: var(--accent);
-    padding: 12px 20px; border-radius: 12px; cursor: pointer; font-size: .95rem;
-    font-weight: 600; width: 100%; text-align: left; transition: background .2s;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .summary-toggle:hover { background: var(--border); }
-  .summary-toggle .arrow { transition: transform .3s; display: inline-block; }
-  .summary-toggle .arrow.open { transform: rotate(180deg); }
+  .summary-toggle { display: none; }
 
-  .summary-table-wrap {
-    background: var(--bg-surface); border-radius: 0 0 12px 12px; border: 1px solid var(--border);
-    border-top: none; overflow: hidden; max-height: 0; transition: max-height .4s ease;
-  }
-  .summary-table-wrap.open { max-height: 8000px; }
+  .summary-table-wrap { display: block; overflow: visible; max-height: none; }
 
   /* ── Desktop Table View ── */
   .summary-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
@@ -551,21 +578,18 @@
   .summary-totals .st-label { font-size: .7rem; text-transform: uppercase; color: var(--text-tertiary); letter-spacing: .05em; }
   .summary-totals .st-value { font-size: 1.1rem; font-weight: 700; margin-top: 2px; }
 
-  /* ── Responsive: hide table on mobile, show cards ── */
+  /* ── Responsive ── */
   @media (max-width: 640px) {
-    header { justify-content: center; text-align: center; }
-    h1 { width: 100%; }
-    .month-nav { width: 100%; justify-content: center; }
-    .day { min-height: 60px; padding: 4px 3px; }
-    .day .day-num { font-size: .7rem; }
-    .day .day-total { font-size: .6rem; margin-top: 2px; }
-    .day .day-sub { font-size: .55rem; }
+    .day { min-height: 46px; padding: 3px 3px; }
+    .day .day-num { font-size: .65rem; }
+    .day .day-total { font-size: .55rem; margin-top: 1px; }
+    .day .day-sub { font-size: .5rem; }
     .day .dot { width: 4px; height: 4px; }
     .day .dot-row { gap: 2px; margin-top: 2px; }
-    .days { gap: 3px; }
+    .days { gap: 2px; }
     .summary-table { display: none; }
     .summary-cards-mobile { display: block; }
-    .summary-totals { padding: 12px; }
+    .summary-totals { padding: 10px; }
     .summary-totals .st-year-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .summary-totals .st-value { font-size: .95rem; }
     .year-card-header .year-stats { display: none; }
@@ -705,26 +729,11 @@
   }
 
   /* ── Savings Section ── */
-  .savings-section { margin-top: 24px; }
+  .savings-section { }
 
-  .savings-toggle {
-    background: var(--bg-surface); border: 1px solid var(--border); color: var(--success);
-    padding: 12px 20px; border-radius: 12px; cursor: pointer; font-size: .95rem;
-    font-weight: 600; width: 100%; text-align: left; transition: background .2s;
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .savings-toggle:hover { background: var(--border); }
-  .savings-toggle .arrow { transition: transform .3s; display: inline-block; }
-  .savings-toggle .arrow.open { transform: rotate(180deg); }
-
-  .savings-wrap {
-    background: var(--bg-surface); border-radius: 0 0 12px 12px; border: 1px solid var(--border);
-    border-top: none; overflow: hidden; max-height: 0; transition: max-height .4s ease;
-    padding: 0;
-  }
-  .savings-wrap.open { max-height: 4000px; padding: 16px; }
-
-  .savings-inner { display: flex; flex-direction: column; gap: 16px; }
+  .savings-toggle { display: none; }
+  .savings-wrap { display: block; overflow: visible; max-height: none; padding: 0; border: none; background: none; }
+  .savings-inner { display: flex; flex-direction: column; gap: 12px; }
 
   .savings-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media (max-width: 640px) { .savings-forms { grid-template-columns: 1fr; } }
@@ -829,218 +838,228 @@
 
 <!-- Main App (hidden until logged in) -->
 <div class="app" id="appMain" style="display:none;">
+<div class="app-shell">
 
-  <div class="user-bar" id="userBar">
-    <span class="user-info">Signed in as <strong id="userEmail"></strong></span>
-    <div class="user-bar-actions">
-      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light and dark theme">&#9790;</button>
-      <button class="logout-btn" id="logoutBtn">Log Out</button>
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <h1>💸 Budget</h1>
     </div>
-  </div>
-
-  <header>
-    <h1>Budget Calendar Tracker</h1>
     <div class="month-nav">
       <button id="prevMonth">&larr;</button>
       <span id="monthLabel"></span>
       <button id="nextMonth">&rarr;</button>
     </div>
-  </header>
-
-  <!-- Summary Cards -->
-  <div class="summary">
-    <div class="card budget-pair">
-      <div class="budget-half">
-        <label>Monthly Budget</label>
-        <div class="budget-input-group">
-          <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
-          <input type="number" id="budgetInput" min="0" step="0.01" placeholder="0.00">
-        </div>
-      </div>
-      <div class="budget-divider"></div>
-      <div class="budget-half">
-        <label>Daily Expense Budget</label>
-        <div class="budget-input-group">
-          <span style="font-size:1.3rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
-          <select id="dailyBudgetInput">
-            <option value="0">Select</option>
-            <option value="10000">10,000</option>
-            <option value="12000">12,000</option>
-            <option value="13000">13,000</option>
-            <option value="14000">14,000</option>
-            <option value="15000">15,000</option>
-          </select>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <label>Daily Expenses</label>
-      <div class="value red" id="totalSpent">&#8369;0.00</div>
-    </div>
-    <div class="card">
-      <label>Subscriptions</label>
-      <div class="value purple" id="totalSubs">&#8369;0.00</div>
-    </div>
-    <div class="card">
-      <label>Remaining</label>
-      <div class="value green" id="remaining">&#8369;0.00</div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar" id="progressBar" style="width:100%;background:var(--success);"></div>
-      </div>
-    </div>
-    <div class="card">
-      <label>Daily Average</label>
-      <div class="value amber" id="dailyAvg">&#8369;0.00</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme" aria-label="Toggle light and dark theme">&#9790;</button>
+      <button class="logout-btn" id="logoutBtn" style="background:none;border:1px solid var(--border-hover);color:var(--text-secondary);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:.75rem;">Out</button>
     </div>
   </div>
 
-  <!-- Main Layout -->
-  <div class="main-layout">
-    <!-- Calendar -->
-    <div class="calendar-wrap">
-      <div class="weekdays">
-        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
-        <span>Thu</span><span>Fri</span><span>Sat</span>
-      </div>
-      <div class="days" id="calendarGrid"></div>
-    </div>
+  <!-- Tab Content -->
+  <div class="tab-content">
 
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="panel">
-        <h3>Add Daily Expense</h3>
-        <div class="selected-date-label" id="selectedDateLabel">Select a day</div>
-        <div class="form-row">
-          <input type="text" id="expenseName" placeholder="Description">
-          <input type="number" id="expenseAmount" placeholder="Amount" min="0" step="0.01" style="max-width:100px;">
-        </div>
-        <div class="form-row">
-          <select id="expenseCategory">
-            <option value="">No Category</option>
-            <option value="food">Food</option>
-            <option value="transport">Transport</option>
-            <option value="bills">Bills</option>
-            <option value="shopping">Shopping</option>
-            <option value="health">Health</option>
-            <option value="entertainment">Entertainment</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <select id="expenseRepeat" style="width:100%;min-height:48px;">
-            <option value="">Repeat: None</option>
-            <option value="daily">Repeat: Daily</option>
-            <option value="weekly">Repeat: Weekly</option>
-            <option value="monthly">Repeat: Monthly</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" id="addExpenseBtn" style="width:100%;min-height:48px;">Add Expense</button>
-        <div class="expense-list" id="expenseList" style="margin-top:12px;"></div>
-      </div>
-
-      <div class="panel">
-        <h3>Monthly Subscriptions & Expenses</h3>
-        <div class="form-row">
-          <input type="text" id="subName" placeholder="Name (e.g. Netflix)">
-        </div>
-        <div class="form-row">
-          <input type="number" id="subAmount" placeholder="Amount" min="0" step="0.01">
-          <input type="date" id="subDay">
-        </div>
-        <div class="form-row">
-          <select id="subRepeat" style="width:100%;min-height:48px;">
-            <option value="">Repeat: None</option>
-            <option value="daily">Repeat: Daily</option>
-            <option value="weekly">Repeat: Weekly</option>
-            <option value="monthly">Repeat: Monthly</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" id="addSubBtn" style="width:100%;min-height:48px;">Add Subscription</button>
-        <div id="subList" style="margin-top:12px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Monthly Summary Section -->
-  <div class="monthly-summary-section">
-    <button class="summary-toggle" id="summaryToggle">
-      Monthly Summary Overview
-      <span class="arrow" id="summaryArrow">&#9660;</span>
-    </button>
-    <div class="summary-table-wrap" id="summaryWrap">
-      <table class="summary-table">
-        <thead>
-          <tr>
-            <th>Month / Year</th>
-            <th>Budget</th>
-            <th>Daily Expenses</th>
-            <th>Subscriptions</th>
-            <th>Total Spent</th>
-            <th>Remaining</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="summaryBody"></tbody>
-      </table>
-      <div class="summary-cards-mobile" id="summaryCardsMobile"></div>
-      <div class="summary-totals" id="summaryTotals"></div>
-    </div>
-  </div>
-
-  <!-- Savings Section -->
-  <div class="savings-section">
-    <button class="savings-toggle" id="savingsToggle">
-      💰 Savings &amp; Banks
-      <span class="arrow" id="savingsArrow">&#9660;</span>
-    </button>
-    <div class="savings-wrap" id="savingsWrap">
-      <div class="savings-inner">
-
-        <!-- Total bar -->
-        <div class="savings-total-bar" id="savingsTotalBar"></div>
-
-        <!-- Bank cards -->
-        <div class="bank-cards" id="bankCards"></div>
-
-        <!-- Forms -->
-        <div class="savings-forms">
-          <!-- Add Bank -->
-          <div class="savings-form-panel">
-            <h4>Add Bank / Wallet</h4>
-            <div class="form-row">
-              <input type="text" id="bankName" placeholder="e.g. BDO, GCash, Maya">
-            </div>
-            <div class="color-row" id="bankColorRow"></div>
-            <button class="btn btn-primary" id="addBankBtn" style="width:100%;">Add Bank</button>
+    <!-- Tab: Calendar -->
+    <div class="tab-pane active" id="tab-calendar">
+      <div class="calendar-expense-layout">
+        <div class="calendar-wrap">
+          <div class="weekdays">
+            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span>
+            <span>Thu</span><span>Fri</span><span>Sat</span>
           </div>
+          <div class="days" id="calendarGrid"></div>
+        </div>
+        <div class="panel">
+          <h3>Add Expense</h3>
+          <div class="selected-date-label" id="selectedDateLabel">Select a day</div>
+          <div class="form-row">
+            <input type="text" id="expenseName" placeholder="Description">
+            <input type="number" id="expenseAmount" placeholder="Amount" min="0" step="0.01" style="max-width:100px;">
+          </div>
+          <div class="form-row">
+            <select id="expenseCategory">
+              <option value="">No Category</option>
+              <option value="food">Food</option>
+              <option value="transport">Transport</option>
+              <option value="bills">Bills</option>
+              <option value="shopping">Shopping</option>
+              <option value="health">Health</option>
+              <option value="entertainment">Entertainment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <select id="expenseRepeat" style="width:100%;min-height:44px;">
+              <option value="">Repeat: None</option>
+              <option value="daily">Repeat: Daily</option>
+              <option value="weekly">Repeat: Weekly</option>
+              <option value="monthly">Repeat: Monthly</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="addExpenseBtn" style="width:100%;min-height:44px;">Add Expense</button>
+          <div class="expense-list" id="expenseList" style="margin-top:10px;"></div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Add Savings Entry -->
-          <div class="savings-form-panel">
-            <h4>Record Deposit</h4>
-            <div class="form-row">
-              <select id="depositBank"><option value="">Select bank</option></select>
+    <!-- Tab: Budget -->
+    <div class="tab-pane" id="tab-budget">
+      <div class="summary">
+        <div class="card budget-pair">
+          <div class="budget-half">
+            <label>Monthly Budget</label>
+            <div class="budget-input-group">
+              <span style="font-size:1.1rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
+              <input type="number" id="budgetInput" min="0" step="0.01" placeholder="0.00">
             </div>
-            <div class="form-row">
-              <input type="number" id="depositAmount" placeholder="Amount" min="0" step="0.01">
-              <input type="date" id="depositDate" style="max-width:140px;">
+          </div>
+          <div class="budget-divider"></div>
+          <div class="budget-half">
+            <label>Daily Budget</label>
+            <div class="budget-input-group">
+              <span style="font-size:1.1rem;font-weight:700;color:var(--text-tertiary);">&#8369;</span>
+              <select id="dailyBudgetInput">
+                <option value="0">Select</option>
+                <option value="10000">10,000</option>
+                <option value="12000">12,000</option>
+                <option value="13000">13,000</option>
+                <option value="14000">14,000</option>
+                <option value="15000">15,000</option>
+              </select>
             </div>
-            <div class="form-row">
-              <input type="text" id="depositNote" placeholder="Note (optional)">
-            </div>
-            <button class="btn btn-primary" id="addDepositBtn" style="width:100%;">Save Deposit</button>
           </div>
         </div>
-
-        <!-- Entries list -->
-        <div class="savings-entries-wrap">
-          <h4>Recent Deposits <span id="savingsFilterLabel" style="color:#64748b;font-weight:400;"></span></h4>
-          <div id="savingsEntryList"></div>
+        <div class="card">
+          <label>Daily Expenses</label>
+          <div class="value red" id="totalSpent">&#8369;0.00</div>
         </div>
-
+        <div class="card">
+          <label>Subscriptions</label>
+          <div class="value purple" id="totalSubs">&#8369;0.00</div>
+        </div>
+        <div class="card">
+          <label>Remaining</label>
+          <div class="value green" id="remaining">&#8369;0.00</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar" id="progressBar" style="width:100%;background:var(--success);"></div>
+          </div>
+        </div>
+        <div class="card">
+          <label>Daily Average</label>
+          <div class="value amber" id="dailyAvg">&#8369;0.00</div>
+        </div>
+      </div>
+      <div class="sidebar">
+        <div class="panel">
+          <h3>Subscriptions</h3>
+          <div class="form-row">
+            <input type="text" id="subName" placeholder="Name (e.g. Netflix)">
+          </div>
+          <div class="form-row">
+            <input type="number" id="subAmount" placeholder="Amount" min="0" step="0.01">
+            <input type="date" id="subDay">
+          </div>
+          <div class="form-row">
+            <select id="subRepeat" style="width:100%;min-height:44px;">
+              <option value="">Repeat: None</option>
+              <option value="daily">Repeat: Daily</option>
+              <option value="weekly">Repeat: Weekly</option>
+              <option value="monthly">Repeat: Monthly</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="addSubBtn" style="width:100%;min-height:44px;">Add Subscription</button>
+          <div id="subList" style="margin-top:10px;"></div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+
+    <!-- Tab: Savings -->
+    <div class="tab-pane" id="tab-savings">
+      <div class="savings-section">
+        <div class="savings-wrap">
+          <div class="savings-inner">
+            <div class="savings-total-bar" id="savingsTotalBar"></div>
+            <div class="bank-cards" id="bankCards"></div>
+            <div class="savings-forms">
+              <div class="savings-form-panel">
+                <h4>Add Bank / Wallet</h4>
+                <div class="form-row">
+                  <input type="text" id="bankName" placeholder="e.g. BDO, GCash, Maya">
+                </div>
+                <div class="color-row" id="bankColorRow"></div>
+                <button class="btn btn-primary" id="addBankBtn" style="width:100%;">Add Bank</button>
+              </div>
+              <div class="savings-form-panel">
+                <h4>Record Deposit</h4>
+                <div class="form-row">
+                  <select id="depositBank"><option value="">Select bank</option></select>
+                </div>
+                <div class="form-row">
+                  <input type="number" id="depositAmount" placeholder="Amount" min="0" step="0.01">
+                  <input type="date" id="depositDate" style="max-width:140px;">
+                </div>
+                <div class="form-row">
+                  <input type="text" id="depositNote" placeholder="Note (optional)">
+                </div>
+                <button class="btn btn-primary" id="addDepositBtn" style="width:100%;">Save Deposit</button>
+              </div>
+            </div>
+            <div class="savings-entries-wrap">
+              <h4>Recent Deposits <span id="savingsFilterLabel" style="color:var(--text-tertiary);font-weight:400;"></span></h4>
+              <div id="savingsEntryList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Summary -->
+    <div class="tab-pane" id="tab-summary">
+      <div class="monthly-summary-section">
+        <div class="summary-table-wrap" id="summaryWrap">
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>Month / Year</th>
+                <th>Budget</th>
+                <th>Expenses</th>
+                <th>Subs</th>
+                <th>Remaining</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="summaryBody"></tbody>
+          </table>
+          <div class="summary-cards-mobile" id="summaryCardsMobile"></div>
+          <div class="summary-totals" id="summaryTotals"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end tab-content -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-tab="calendar">
+      <span class="nav-icon">📅</span>
+      <span>Calendar</span>
+    </button>
+    <button class="nav-btn" data-tab="budget">
+      <span class="nav-icon">💳</span>
+      <span>Budget</span>
+    </button>
+    <button class="nav-btn" data-tab="savings">
+      <span class="nav-icon">💰</span>
+      <span>Savings</span>
+    </button>
+    <button class="nav-btn" data-tab="summary">
+      <span class="nav-icon">📊</span>
+      <span>Summary</span>
+    </button>
+  </nav>
+
+</div><!-- end app-shell -->
+</div><!-- end appMain -->
 
 <div id="dialogContainer"></div>
 

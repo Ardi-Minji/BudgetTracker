@@ -1105,11 +1105,7 @@ function renderSavings(): void {
 // ── Savings Event Listeners ──────────────────────────────────────────
 
 el('savingsToggle').addEventListener('click', () => {
-  const wrap = el('savingsWrap');
-  const arrow = el('savingsArrow');
-  wrap.classList.toggle('open');
-  arrow.classList.toggle('open');
-  if (wrap.classList.contains('open')) renderSavings();
+  renderSavings();
 });
 
 el('addBankBtn').addEventListener('click', () => {
@@ -1310,11 +1306,20 @@ el('addSubBtn').addEventListener('click', () => {
 });
 
 el('summaryToggle').addEventListener('click', () => {
-  const wrap = el('summaryWrap');
-  const arrow = el('summaryArrow');
-  wrap.classList.toggle('open');
-  arrow.classList.toggle('open');
-  if (wrap.classList.contains('open')) renderMonthlySummary();
+  renderMonthlySummary();
+});
+
+// ── Tab Navigation ────────────────────────────────────────────────────
+document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab!;
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    el(`tab-${tab}`).classList.add('active');
+    if (tab === 'summary') renderMonthlySummary();
+    if (tab === 'savings') renderSavings();
+  });
 });
 
 // ── Auth UI ──────────────────────────────────────────────────────────
@@ -1336,8 +1341,6 @@ function showAuthScreen(): void {
 function showApp(user: User): void {
   el('authScreen').style.display = 'none';
   el('appMain').style.display = 'block';
-  el('userEmail').textContent = user.email ?? '';
-  el('userBar').style.display = 'flex';
   hideLoadingScreen();
 }
 
