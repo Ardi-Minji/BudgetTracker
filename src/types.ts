@@ -1,16 +1,23 @@
 export interface Expense {
   name: string;
   amount: number;
+  category?: string;
+  repeat?: 'daily' | 'weekly' | 'monthly';
+  repeatId?: string;
 }
 
 export interface Subscription {
   name: string;
   amount: number;
   day: number;
+  paid?: boolean;
+  repeat?: 'daily' | 'weekly' | 'monthly';
+  repeatId?: string;
 }
 
 export interface MonthData {
   budget: number;
+  dailyBudget?: number;
   subscriptions: Subscription[];
   expenses: Record<string, Expense[]>;
 }
