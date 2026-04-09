@@ -365,6 +365,96 @@
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: #1e293b; }
   ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+  /* ── Savings Section ── */
+  .savings-section { margin-top: 24px; }
+
+  .savings-toggle {
+    background: #1e293b; border: 1px solid #334155; color: #4ade80;
+    padding: 12px 20px; border-radius: 12px; cursor: pointer; font-size: .95rem;
+    font-weight: 600; width: 100%; text-align: left; transition: background .2s;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .savings-toggle:hover { background: #334155; }
+  .savings-toggle .arrow { transition: transform .3s; display: inline-block; }
+  .savings-toggle .arrow.open { transform: rotate(180deg); }
+
+  .savings-wrap {
+    background: #1e293b; border-radius: 0 0 12px 12px; border: 1px solid #334155;
+    border-top: none; overflow: hidden; max-height: 0; transition: max-height .4s ease;
+    padding: 0;
+  }
+  .savings-wrap.open { max-height: 4000px; padding: 16px; }
+
+  .savings-inner { display: flex; flex-direction: column; gap: 16px; }
+
+  /* Add bank + add entry forms */
+  .savings-forms { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 640px) { .savings-forms { grid-template-columns: 1fr; } }
+
+  .savings-form-panel {
+    background: #0f172a; border-radius: 10px; padding: 14px; border: 1px solid #334155;
+  }
+  .savings-form-panel h4 { font-size: .85rem; color: #cbd5e1; margin-bottom: 10px; }
+
+  .color-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+  .color-swatch {
+    width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: border-color .15s;
+  }
+  .color-swatch.selected { border-color: #fff; }
+
+  /* Bank cards grid */
+  .bank-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { .bank-cards { grid-template-columns: 1fr 1fr; } }
+
+  .bank-card {
+    background: #0f172a; border-radius: 12px; padding: 14px;
+    border: 2px solid transparent; cursor: pointer; transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .bank-card:hover { background: #1a2744; }
+  .bank-card.active { background: #1a2744; }
+
+  .bank-card-accent { width: 32px; height: 4px; border-radius: 2px; margin-bottom: 10px; }
+  .bank-card-name { font-size: .9rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; }
+  .bank-card-balance { font-size: 1.1rem; font-weight: 700; color: #4ade80; }
+  .bank-card-count { font-size: .7rem; color: #64748b; margin-top: 2px; }
+  .bank-card-del {
+    position: absolute; top: 8px; right: 8px;
+    background: none; border: none; color: #475569; cursor: pointer; font-size: .9rem; padding: 2px 5px;
+  }
+  .bank-card-del:hover { color: #f87171; }
+
+  /* Entries list */
+  .savings-entries-wrap { background: #0f172a; border-radius: 10px; padding: 14px; border: 1px solid #334155; }
+  .savings-entries-wrap h4 { font-size: .85rem; color: #cbd5e1; margin-bottom: 10px; }
+
+  .savings-entry-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid #1e293b;
+  }
+  .savings-entry-item:last-child { border-bottom: none; }
+  .sei-left { display: flex; flex-direction: column; gap: 2px; }
+  .sei-bank { font-size: .75rem; font-weight: 700; }
+  .sei-date { font-size: .7rem; color: #64748b; }
+  .sei-note { font-size: .7rem; color: #94a3b8; font-style: italic; }
+  .sei-amount { font-size: .95rem; font-weight: 700; color: #4ade80; }
+  .sei-del {
+    background: none; border: none; color: #475569; cursor: pointer; font-size: .9rem; padding: 0 4px; margin-left: 8px;
+  }
+  .sei-del:hover { color: #f87171; }
+
+  /* Total savings card */
+  .savings-total-bar {
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .savings-total-card {
+    background: #0f172a; border-radius: 10px; padding: 12px 16px;
+    border: 1px solid #334155; flex: 1; min-width: 120px;
+  }
+  .stc-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+  .stc-value { font-size: 1.1rem; font-weight: 700; color: #4ade80; margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -507,6 +597,60 @@
       </table>
       <div class="summary-cards-mobile" id="summaryCardsMobile"></div>
       <div class="summary-totals" id="summaryTotals"></div>
+    </div>
+  </div>
+
+  <!-- Savings Section -->
+  <div class="savings-section">
+    <button class="savings-toggle" id="savingsToggle">
+      💰 Savings &amp; Banks
+      <span class="arrow" id="savingsArrow">&#9660;</span>
+    </button>
+    <div class="savings-wrap" id="savingsWrap">
+      <div class="savings-inner">
+
+        <!-- Total bar -->
+        <div class="savings-total-bar" id="savingsTotalBar"></div>
+
+        <!-- Bank cards -->
+        <div class="bank-cards" id="bankCards"></div>
+
+        <!-- Forms -->
+        <div class="savings-forms">
+          <!-- Add Bank -->
+          <div class="savings-form-panel">
+            <h4>Add Bank / Wallet</h4>
+            <div class="form-row">
+              <input type="text" id="bankName" placeholder="e.g. BDO, GCash, Maya">
+            </div>
+            <div class="color-row" id="bankColorRow"></div>
+            <button class="btn btn-primary" id="addBankBtn" style="width:100%;">Add Bank</button>
+          </div>
+
+          <!-- Add Savings Entry -->
+          <div class="savings-form-panel">
+            <h4>Record Deposit</h4>
+            <div class="form-row">
+              <select id="depositBank"><option value="">Select bank</option></select>
+            </div>
+            <div class="form-row">
+              <input type="number" id="depositAmount" placeholder="Amount" min="0" step="0.01">
+              <input type="date" id="depositDate" style="max-width:140px;">
+            </div>
+            <div class="form-row">
+              <input type="text" id="depositNote" placeholder="Note (optional)">
+            </div>
+            <button class="btn btn-primary" id="addDepositBtn" style="width:100%;">Save Deposit</button>
+          </div>
+        </div>
+
+        <!-- Entries list -->
+        <div class="savings-entries-wrap">
+          <h4>Recent Deposits <span id="savingsFilterLabel" style="color:#64748b;font-weight:400;"></span></h4>
+          <div id="savingsEntryList"></div>
+        </div>
+
+      </div>
     </div>
   </div>
 </div>

@@ -1,6 +1,7 @@
-import type { BudgetStore, MonthData, MonthSummary, YearSummary } from './types';
+import type { BudgetStore, MonthData, MonthSummary, YearSummary, SavingsStore, Bank, SavingsEntry } from './types';
 import { initAuth, setAuthCallback, signIn, signUp, signInWithGoogle, signOut } from './auth';
 import { loadData, saveData, setUserId } from './store';
+import { loadSavings, saveSavings, setSavingsUserId } from './savings';
 import type { User } from '@supabase/supabase-js';
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -43,6 +44,13 @@ let currentMonth: number;
 let selectedDay: number | null;
 let data: BudgetStore = {};
 const expandedYears = new Set<number>();
+
+// ── Savings State ────────────────────────────────────────────────────
+let savingsData: SavingsStore = { banks: [], entries: [] };
+let selectedBankId: string | null = null;
+
+const BANK_COLORS = ['#4ade80', '#38bdf8', '#a78bfa', '#fbbf24', '#f87171', '#fb923c', '#34d399', '#e879f9'];
+let selectedBankColor = BANK_COLORS[0];
 
 function save(): void {
   saveData(data);
@@ -453,6 +461,188 @@ function renderMonthlySummary(): void {
   `;
 }
 
+// ── Savings ──────────────────────────────────────────────────────────
+
+function saveSavingsData(): void {
+  saveSavings(savingsData);
+}
+
+function initBankColorPicker(): void {
+  const row = el('bankColorRow');
+  row.innerHTML = BANK_COLORS.map(c => `
+    <div class="color-swatch ${c === selectedBankColor ? 'selected' : ''}"
+      style="background:${c};" data-color="${c}"></div>
+  `).join('');
+  row.querySelectorAll<HTMLElement>('.color-swatch').forEach(sw => {
+    sw.addEventListener('click', () => {
+      selectedBankColor = sw.dataset.color!;
+      initBankColorPicker();
+    });
+  });
+}
+
+function renderSavings(): void {
+  const banks = savingsData.banks;
+  const entries = savingsData.entries;
+
+  // Total bar
+  const totalAll = entries.reduce((s, e) => s + e.amount, 0);
+  const totalBar = el('savingsTotalBar');
+  totalBar.innerHTML = `
+    <div class="savings-total-card">
+      <div class="stc-label">Total Savings</div>
+      <div class="stc-value">${fmt(totalAll)}</div>
+    </div>
+    ${banks.map(b => {
+      const bal = entries.filter(e => e.bankId === b.id).reduce((s, e) => s + e.amount, 0);
+      return `
+        <div class="savings-total-card" style="border-color:${b.color}33;">
+          <div class="stc-label" style="color:${b.color};">${escHtml(b.name)}</div>
+          <div class="stc-value" style="color:${b.color};">${fmt(bal)}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
+
+  // Bank cards
+  const bankCards = el('bankCards');
+  if (banks.length === 0) {
+    bankCards.innerHTML = '<div class="empty-msg">No banks added yet</div>';
+  } else {
+    bankCards.innerHTML = banks.map(b => {
+      const bal = entries.filter(e => e.bankId === b.id).reduce((s, e) => s + e.amount, 0);
+      const count = entries.filter(e => e.bankId === b.id).length;
+      const isActive = selectedBankId === b.id;
+      return `
+        <div class="bank-card ${isActive ? 'active' : ''}" data-bid="${b.id}" style="border-color:${isActive ? b.color : 'transparent'};">
+          <button class="bank-card-del" data-bid="${b.id}">&times;</button>
+          <div class="bank-card-accent" style="background:${b.color};"></div>
+          <div class="bank-card-name">${escHtml(b.name)}</div>
+          <div class="bank-card-balance" style="color:${b.color};">${fmt(bal)}</div>
+          <div class="bank-card-count">${count} deposit${count !== 1 ? 's' : ''}</div>
+        </div>
+      `;
+    }).join('');
+
+    bankCards.querySelectorAll<HTMLElement>('.bank-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if ((e.target as HTMLElement).classList.contains('bank-card-del')) return;
+        const bid = card.dataset.bid!;
+        selectedBankId = selectedBankId === bid ? null : bid;
+        renderSavings();
+      });
+    });
+
+    bankCards.querySelectorAll<HTMLButtonElement>('.bank-card-del').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const bid = btn.dataset.bid!;
+        savingsData.banks = savingsData.banks.filter(b => b.id !== bid);
+        savingsData.entries = savingsData.entries.filter(e => e.bankId !== bid);
+        if (selectedBankId === bid) selectedBankId = null;
+        saveSavingsData();
+        renderSavings();
+      });
+    });
+  }
+
+  // Populate deposit bank dropdown
+  const depositBankSel = el('depositBank') as HTMLSelectElement;
+  const prevVal = depositBankSel.value;
+  depositBankSel.innerHTML = '<option value="">Select bank</option>' +
+    banks.map(b => `<option value="${b.id}">${escHtml(b.name)}</option>`).join('');
+  if (prevVal) depositBankSel.value = prevVal;
+
+  // Entries list (filtered by selected bank)
+  const filtered = selectedBankId
+    ? entries.filter(e => e.bankId === selectedBankId)
+    : [...entries];
+  filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+  const filterLabel = el('savingsFilterLabel');
+  if (selectedBankId) {
+    const bank = banks.find(b => b.id === selectedBankId);
+    filterLabel.textContent = bank ? `— ${bank.name}` : '';
+  } else {
+    filterLabel.textContent = '— All Banks';
+  }
+
+  const entryList = el('savingsEntryList');
+  if (filtered.length === 0) {
+    entryList.innerHTML = '<div class="empty-msg">No deposits yet</div>';
+  } else {
+    entryList.innerHTML = filtered.map(entry => {
+      const bank = banks.find(b => b.id === entry.bankId);
+      return `
+        <div class="savings-entry-item">
+          <div class="sei-left">
+            <span class="sei-bank" style="color:${bank?.color ?? '#94a3b8'};">${escHtml(bank?.name ?? 'Unknown')}</span>
+            <span class="sei-date">${entry.date}</span>
+            ${entry.note ? `<span class="sei-note">${escHtml(entry.note)}</span>` : ''}
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;">
+            <span class="sei-amount">${fmt(entry.amount)}</span>
+            <button class="sei-del" data-eid="${entry.id}">&times;</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    entryList.querySelectorAll<HTMLButtonElement>('.sei-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        savingsData.entries = savingsData.entries.filter(e => e.id !== btn.dataset.eid);
+        saveSavingsData();
+        renderSavings();
+      });
+    });
+  }
+}
+
+// ── Savings Event Listeners ──────────────────────────────────────────
+
+el('savingsToggle').addEventListener('click', () => {
+  const wrap = el('savingsWrap');
+  const arrow = el('savingsArrow');
+  wrap.classList.toggle('open');
+  arrow.classList.toggle('open');
+  if (wrap.classList.contains('open')) renderSavings();
+});
+
+el('addBankBtn').addEventListener('click', () => {
+  const nameInput = el('bankName') as HTMLInputElement;
+  const name = nameInput.value.trim();
+  if (!name) { alert('Enter a bank name.'); return; }
+  const id = `bank-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  savingsData.banks.push({ id, name, color: selectedBankColor });
+  saveSavingsData();
+  nameInput.value = '';
+  renderSavings();
+});
+
+el('addDepositBtn').addEventListener('click', () => {
+  const bankSel = el('depositBank') as HTMLSelectElement;
+  const amountInput = el('depositAmount') as HTMLInputElement;
+  const dateInput = el('depositDate') as HTMLInputElement;
+  const noteInput = el('depositNote') as HTMLInputElement;
+
+  const bankId = bankSel.value;
+  const amount = parseFloat(amountInput.value);
+  const date = dateInput.value;
+  const note = noteInput.value.trim();
+
+  if (!bankId) { alert('Select a bank.'); return; }
+  if (!amount || amount <= 0) { alert('Enter a valid amount.'); return; }
+  if (!date) { alert('Select a date.'); return; }
+
+  const id = `entry-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  savingsData.entries.push({ id, bankId, amount, date, note: note || undefined });
+  saveSavingsData();
+
+  amountInput.value = '';
+  noteInput.value = '';
+  renderSavings();
+});
+
 // ── Event Listeners ──────────────────────────────────────────────────
 
 el('prevMonth').addEventListener('click', () => {
@@ -597,21 +787,28 @@ el('logoutBtn').addEventListener('click', async () => {
 
 // ── Init ─────────────────────────────────────────────────────────────
 initSubDaySelect();
+initBankColorPicker();
 
 const now = new Date();
 currentYear = now.getFullYear();
 currentMonth = now.getMonth();
 selectedDay = now.getDate();
 
+// Default deposit date to today
+(el('depositDate') as HTMLInputElement).value = now.toISOString().slice(0, 10);
+
 setAuthCallback(async (user: User | null) => {
   if (!user) {
     setUserId(null);
+    setSavingsUserId(null);
     showAuthScreen();
     return;
   }
 
   setUserId(user.id);
+  setSavingsUserId(user.id);
   data = await loadData();
+  savingsData = await loadSavings();
   showApp(user);
   render();
 });

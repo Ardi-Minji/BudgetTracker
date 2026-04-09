@@ -38,3 +38,22 @@ export interface YearSummary {
   totalSpent: number;
   remaining: number;
 }
+
+export interface Bank {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface SavingsEntry {
+  id: string;
+  bankId: string;
+  amount: number;
+  date: string; // ISO date string YYYY-MM-DD
+  note?: string;
+}
+
+export interface SavingsStore {
+  banks: Bank[];
+  entries: SavingsEntry[];
+}
