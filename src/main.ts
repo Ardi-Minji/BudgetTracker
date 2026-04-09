@@ -1104,10 +1104,6 @@ function renderSavings(): void {
 
 // ── Savings Event Listeners ──────────────────────────────────────────
 
-el('savingsToggle').addEventListener('click', () => {
-  renderSavings();
-});
-
 el('addBankBtn').addEventListener('click', () => {
   const nameInput = el('bankName') as HTMLInputElement;
   const name = nameInput.value.trim();
@@ -1305,10 +1301,6 @@ el('addSubBtn').addEventListener('click', () => {
   if (e.key === 'Enter') (el('addSubBtn') as HTMLButtonElement).click();
 });
 
-el('summaryToggle').addEventListener('click', () => {
-  renderMonthlySummary();
-});
-
 // ── Tab Navigation ────────────────────────────────────────────────────
 document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1425,6 +1417,9 @@ setAuthCallback(async (user: User | null) => {
   showApp(user);
   render();
 });
+
+// Safety net: if auth takes too long, hide splash and show auth screen
+setTimeout(() => hideLoadingScreen(), 4000);
 
 initAuth();
 
