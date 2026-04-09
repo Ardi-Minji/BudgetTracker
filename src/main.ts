@@ -1344,18 +1344,21 @@ function attachFeedGestures(): void {
     let startY = 0;
     let deltaX = 0;
     let cancelled = false;
+    let isPointerDown = false;
+    const swipeReveal = 56;
 
-    row.addEventListener('touchstart', (e) => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
+    function onStart(x: number, y: number): void {
+      startX = x;
+      startY = y;
       deltaX = 0;
       cancelled = false;
-    }, { passive: true });
+      isPointerDown = true;
+    }
 
-    row.addEventListener('touchmove', (e) => {
-      if (cancelled) return;
-      const curX = e.touches[0].clientX;
-      const curY = e.touches[0].clientY;
+    function onMove(x: number, y: number): void {
+      if (!isPointerDown || cancelled) return;
+      const curX = x;
+      const curY = y;
       deltaX = curX - startX;
       const deltaY = curY - startY;
 
@@ -1365,19 +1368,40 @@ function attachFeedGestures(): void {
         return;
       }
 
-      const clamped = Math.max(-72, Math.min(72, deltaX));
+      const clamped = Math.max(-swipeReveal, Math.min(swipeReveal, deltaX));
       inner.style.transform = `translateX(${clamped}px)`;
-    }, { passive: true });
+    }
 
-    row.addEventListener('touchend', () => {
-      if (cancelled || Math.abs(deltaX) < 72) {
+    function onEnd(): void {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      if (cancelled || Math.abs(deltaX) < swipeReveal) {
         inner.style.transform = 'translateX(0)';
       } else if (deltaX <= -72) {
-        inner.style.transform = 'translateX(-72px)';
-      } else if (deltaX >= 72) {
-        inner.style.transform = 'translateX(72px)';
+        inner.style.transform = `translateX(-${swipeReveal}px)`;
+      } else if (deltaX >= swipeReveal) {
+        inner.style.transform = `translateX(${swipeReveal}px)`;
       }
+    }
+
+    // Touch support
+    row.addEventListener('touchstart', (e) => {
+      onStart(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
+    row.addEventListener('touchmove', (e) => {
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    row.addEventListener('touchend', () => onEnd(), { passive: true });
+
+    // Mouse support (desktop/PWA windowed usage)
+    row.addEventListener('mousedown', (e) => {
+      onStart(e.clientX, e.clientY);
+    });
+    row.addEventListener('mousemove', (e) => {
+      onMove(e.clientX, e.clientY);
+    });
+    row.addEventListener('mouseup', () => onEnd());
+    row.addEventListener('mouseleave', () => onEnd());
 
     // Delete action
     deleteBtn.addEventListener('click', () => {
