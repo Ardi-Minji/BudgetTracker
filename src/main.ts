@@ -1761,6 +1761,13 @@ el('addSubBtn').addEventListener('click', () => {
 // ── Tab Navigation ────────────────────────────────────────────────────
 const monthNav = document.querySelector<HTMLElement>('.month-nav')!;
 
+const PAGE_TITLES: Record<string, string> = {
+  calendar: 'Calendar',
+  budget: 'Budget',
+  savings: 'Savings',
+  summary: 'Summary',
+};
+
 document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const tab = btn.dataset.tab!;
@@ -1768,6 +1775,7 @@ document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     el(`tab-${tab}`).classList.add('active');
+    el('pageTitle').textContent = PAGE_TITLES[tab] || 'Budget';
     monthNav.style.visibility = tab === 'calendar' ? 'visible' : 'hidden';
     if (tab === 'summary') renderMonthlySummary();
     if (tab === 'savings') { renderSavings(); initFab(); }
@@ -1775,6 +1783,20 @@ document.querySelectorAll<HTMLButtonElement>('.nav-btn').forEach(btn => {
 });
 
 // ── Auth UI ──────────────────────────────────────────────────────────
+
+const DEMO_EMAIL = 'demo@budget.local';
+const DEMO_PASSWORD = 'demo123';
+const DEMO_SESSION_KEY = 'budgetDemoSession';
+
+async function enterDemoAccount(remember = true): Promise<void> {
+  if (remember) localStorage.setItem(DEMO_SESSION_KEY, '1');
+  setUserId(null);
+  setSavingsUserId(null);
+  data = await loadData();
+  savingsData = await loadSavings();
+  showApp({ id: 'demo-local-user' } as User);
+  render();
+}
 
 function hideLoadingScreen(): void {
   const splash = document.getElementById('loadingScreen');
@@ -1807,6 +1829,12 @@ el('authSubmit').addEventListener('click', async () => {
   }
   if (password.length < 6) {
     el('authError').textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+
+  if (mode === 'login' && email.toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+    el('authError').textContent = '';
+    await enterDemoAccount();
     return;
   }
 
@@ -1848,7 +1876,9 @@ el('googleBtn').addEventListener('click', async () => {
 });
 
 el('logoutBtn').addEventListener('click', async () => {
+  localStorage.removeItem(DEMO_SESSION_KEY);
   await signOut();
+  showAuthScreen();
 });
 
 // ── Init ─────────────────────────────────────────────────────────────
@@ -1859,6 +1889,10 @@ selectedDay = now.getDate();
 
 setAuthCallback(async (user: User | null) => {
   if (!user) {
+    if (localStorage.getItem(DEMO_SESSION_KEY) === '1') {
+      await enterDemoAccount(false);
+      return;
+    }
     setUserId(null);
     setSavingsUserId(null);
     showAuthScreen();
@@ -1880,6 +1914,13 @@ initAuth();
 
 // ── Service Worker Registration ─────────────────────────────────────
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  const isLocalDev = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  if (isLocalDev) {
+    navigator.serviceWorker.getRegistrations()
+      .then(registrations => registrations.forEach(registration => registration.unregister()))
+      .catch(() => {});
+  } else {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  }
 }
 window.addEventListener('online', () => syncIfPending());
